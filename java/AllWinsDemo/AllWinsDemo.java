@@ -28,15 +28,16 @@ import javax.swing.JPanel;
 
 public class AllWinsDemo {
 
-    static int FRAMES = 3;
+    static int FRAMES = 8;
     static int STEPS = 10;
     static int RESOLX = 1200;
     static int RESOLY = 800;
     static int GRID = 50;
+    static int MAXSCALE = 10;
     final Random rand = new Random();
 
     public JFrame frames[];
-    public int framesX1[], framesY1[], framesX2[], framesY2[],framesS1[],framesS2[];
+    public int framesX[], framesY[], framesW[], framesH[];
     public boolean waitingForSolver;
     public boolean [] satisfiable;
     private JButton btnQuit,btnDo;
@@ -55,7 +56,7 @@ public class AllWinsDemo {
 
 		    for(int i=0;i<FRAMES;i++) {
 			System.out.print("frame #" + i + ": ");
-			System.out.println("[" + framesX1[i]/GRID + " " + framesX2[i]/GRID + "] [" + framesY1[i]/GRID + " " + framesY2[i]/GRID + "] " + framesS1[i] + " " + framesS2[i]);
+			System.out.println("[" + framesX[i]/GRID + " " + (framesX[i]+framesW[i])/GRID + "] [" + framesY[i]/GRID + " " + (framesY[i]+framesW[i])/GRID + "] " + framesW[i]/framesH[i] + " " + framesH[i]/framesW[i]);
 		    }
 		    
 		    if(satisfiable[0]) {
@@ -81,7 +82,7 @@ public class AllWinsDemo {
 				  new ActionListener(){
 				      public void actionPerformed(ActionEvent e){
 					  waitingForSolver = true;
-					  new SolverThread(barrier,satisfiable,framesX1,framesX2,framesY1,framesY2,framesS1,framesS2).start();
+					  new SolverThread(barrier,satisfiable,framesX,framesY,framesW,framesH).start();
 				      }
 				  }
 				  );
@@ -91,19 +92,17 @@ public class AllWinsDemo {
     
 	// draw windows
 	frames = new JFrame [FRAMES];
-	framesX1 = new int[FRAMES];
-	framesY1 = new int[FRAMES];
-	framesX2 = new int[FRAMES];
-	framesY2 = new int[FRAMES];
-	framesS1 = new int[FRAMES];
-	framesS2 = new int[FRAMES];
+	framesX = new int[FRAMES];
+	framesY = new int[FRAMES];
+	framesW = new int[FRAMES];
+	framesH = new int[FRAMES];
 
 	JFrame frame;
 	for(int i=0;i<FRAMES;i++) {
-	    framesX1[i] = rand.nextInt(RESOLX-GRID+1)+GRID;
-	    framesX2[i] = framesX1[i] + rand.nextInt(RESOLX-framesX1[i]-GRID+1)+GRID;
-	    framesY1[i] = rand.nextInt(RESOLY-GRID+1)+GRID;
-	    framesY2[i] = framesY1[i] + rand.nextInt(RESOLY-framesY1[i]-GRID+1)+GRID;
+	    framesX[i] = rand.nextInt(RESOLX-GRID+1)+GRID;
+	    framesW[i] = rand.nextInt(RESOLX-framesX[i]+GRID+1)+GRID;
+	    framesY[i] = rand.nextInt(RESOLY-GRID+1)+GRID;
+	    framesH[i] = rand.nextInt(RESOLY-framesY[i]+GRID+1)+GRID;
 
 	    frames[i] = new JFrame();
 	    frame = frames[i];
@@ -112,12 +111,10 @@ public class AllWinsDemo {
 	    panel.add(new JLabel("a"+i));
 	    
 	    frame.add(panel);
-	    framesS1[i] = (framesX2[i]-framesX1[i])/(framesY2[i]-framesY1[i]);
-	    framesS2[i] = (framesY2[i]-framesY1[i])/(framesX2[i]-framesX1[i]);
 	    System.out.print("frame #" + i + ": ");
-	    System.out.println("[" + framesX1[i]/GRID + " " + framesX2[i]/GRID + "] [" + framesY1[i]/GRID + " " + framesY2[i]/GRID + "] " + framesS1[i] + " " + framesS2[i]);
-	    frame.setSize(framesX2[i]-framesX1[i],framesY2[i]-framesY1[i]);
-	    frame.setLocation(framesX1[i],framesY1[i]);
+	    System.out.println("[" + framesX[i]/GRID + " " + (framesX[i]+framesW[i])/GRID + "] [" + framesY[i]/GRID + " " + (framesY[i]+framesH[i])/GRID + "] " + framesW[i]/framesH[i] + " " + framesH[i]/framesW[i]);
+	    frame.setSize(framesW[i],framesH[i]);
+	    frame.setLocation(framesX[i],framesY[i]);
 	    frame.setVisible(true);
 	}
     }
@@ -136,8 +133,8 @@ public class AllWinsDemo {
     public void moveAndResize() {
 
 	int xInc = 0, yInc = 0, wInc = 0, hInc = 0;
-	int [] cx1s = new int [FRAMES];
-	int [] cy1s = new int [FRAMES];
+	int [] cxs = new int [FRAMES];
+	int [] cys = new int [FRAMES];
 	int [] cws = new int [FRAMES];
 	int [] chs = new int [FRAMES];
 	int [] xIncs = new int [FRAMES];
@@ -145,27 +142,27 @@ public class AllWinsDemo {
 	int [] wIncs = new int [FRAMES];
 	int [] hIncs = new int [FRAMES];
 	for(int i=0;i<FRAMES;i++) {
-	    int x1 = framesX1[i];
-	    int x2 = framesX2[i];
-	    int y1 = framesY1[i];
-	    int y2 = framesY2[i]; 
+	    int x = framesX[i];
+	    int w = framesW[i];
+	    int y = framesY[i];
+	    int h = framesH[i]; 
 	    JFrame f = frames[i];
 	    Point loc = f.getLocation();
 	    Dimension dim = f.getSize();
-	    int cx1 = loc.x, cy1 = loc.y, cx2 = cx1 + dim.width, cy2 = cy1 + dim.height;
-	    int cw = cx2 - cx1, ch = cy2 - cy1;
-	    cx1s[i] = cx1;
-	    cy1s[i] = cy1;
+	    int cx = loc.x, cy = loc.y;
+	    int cw = dim.width, ch = dim.height;
+	    cxs[i] = cx;
+	    cys[i] = cy;
 	    cws[i] = cw;
 	    chs[i] = ch;
-	    xIncs[i] = (x1 - cx1) / STEPS;
-	    yIncs[i] = (y1 - cy1) / STEPS;
-	    wIncs[i] = (x2 - x1 - cw) / STEPS;
-	    hIncs[i] = (y2 - y1 - ch) / STEPS;
-	    xInc = (x1 - cx1 > xInc) ? x1 - cx1 : xInc;
-	    yInc = (y1 - cy1 > yInc) ? y1 - cy1 : yInc;
-	    wInc = (x2 - x1 - cw > wInc) ? x2 - x1 - cw : wInc;
-	    hInc = (y2 - y1 - ch > hInc) ? y2 - y1 - ch : hInc;
+	    xIncs[i] = (x - cx) / STEPS;
+	    yIncs[i] = (y - cy) / STEPS;
+	    wIncs[i] = (w - cw) / STEPS;
+	    hIncs[i] = (h - ch) / STEPS;
+	    xInc = (x - cx > xInc) ? x - cx : xInc;
+	    yInc = (y - cy > yInc) ? y - cy : yInc;
+	    wInc = (w - cw > wInc) ? w - cw : wInc;
+	    hInc = (h - ch > hInc) ? h - ch : hInc;
 	}
 	xInc = xInc / STEPS;
 	yInc = yInc / STEPS;
@@ -177,11 +174,11 @@ public class AllWinsDemo {
 		//Thread.currentThread().sleep(5);
 		for(int i=0;i<FRAMES;i++) {
 		    JFrame f = frames[i];
-		    cx1s[i] += xIncs[i];
-		    cy1s[i] += yIncs[i];
+		    cxs[i] += xIncs[i];
+		    cys[i] += yIncs[i];
 		    cws[i] += wIncs[i];
 		    chs[i] += hIncs[i];
-		    f.setLocation(cx1s[i],cy1s[i]);
+		    f.setLocation(cxs[i],cys[i]);
 		    f.setSize(cws[i],chs[i]);
 		}
 		//}
@@ -195,30 +192,30 @@ public class AllWinsDemo {
     private static class SolverThread extends Thread { 
 	CyclicBarrier barrier; 
 	boolean [] satisfiable;
-	int framesX1[], framesY1[], framesX2[], framesY2[], framesS1[], framesS2[];
-	SolverThread(CyclicBarrier barrier, boolean [] satisfiable, int [] framesX1, int [] framesX2, int [] framesY1, int [] framesY2, int [] framesS1, int [] framesS2) { 
+	int framesX[], framesY[], framesW[], framesH[];
+	SolverThread(CyclicBarrier barrier, boolean [] satisfiable, int [] framesX, int [] framesY, int [] framesW, int [] framesH) { 
 	    this.barrier = barrier;
 	    this.satisfiable = satisfiable;
-	    this.framesX1 = framesX1;
-	    this.framesX2 = framesX2;
-	    this.framesY1 = framesY1;
-	    this.framesY2 = framesY2;
-	    this.framesS1 = framesS1;
-	    this.framesS2 = framesS2;
+	    this.framesX = framesX;
+	    this.framesY = framesY;
+	    this.framesW = framesW;
+	    this.framesH = framesH;
 	} 
 	public void run() { 
 	    System.out.println("in thread..."); 
 	    
 	    Relation idxs = Relation.unary("idxs"); // 0 .. FRAMES
+	    Relation sm = Relation.unary("sm"); // 1 .. MAXSCALE
 	    Relation xm = Relation.unary("xm"); // 0 .. max X
 	    Relation ym = Relation.unary("ym"); // 0 .. max Y
 	    Relation disjIdxs = Relation.nary("disjIdxPairs", 2); // disjoint idxs
-	    Relation x1 = Relation.nary("x1", 2); // X1s
-	    Relation x2 = Relation.nary("x2", 2); // X2s
-	    Relation y1 = Relation.nary("y1", 2); // Y1s
-	    Relation y2 = Relation.nary("y2", 2); // Y2s
-	    Relation proportions1 = Relation.nary("proportions1", 2); // width Scales
-	    Relation proportions2 = Relation.nary("proportions2", 2); // height Scales
+	    Relation x = Relation.nary("x", 2); // new Xs
+	    Relation y = Relation.nary("y", 2); // new Ys
+	    Relation w = Relation.nary("w", 2); // Widths
+	    Relation h = Relation.nary("h", 2); // Heigths
+	    Relation wOrig = Relation.nary("wOrig", 2); // orig Widths
+	    Relation hOrig = Relation.nary("hOrig", 2); // orig Heigths
+	    Relation scale = Relation.nary("scale", 2); // Scales
 	    
 	    int MAXX = RESOLX/GRID;
 	    int MAXY = RESOLY/GRID;
@@ -258,36 +255,64 @@ public class AllWinsDemo {
 					    factory.tuple(universe.atom(MAXY)));
 	    bounds.boundExactly(ym, ym_upper);
 
-	    TupleSet proportions1_upper = factory.noneOf(2);
-	    TupleSet proportions2_upper = factory.noneOf(2);
+	    TupleSet sm_upper=factory.range(factory.tuple(universe.atom(1)),
+					    factory.tuple(universe.atom(MAXSCALE)));
+	    bounds.boundExactly(sm, sm_upper);
+
+	    TupleSet wOrig_upper = factory.noneOf(2);
+	    TupleSet hOrig_upper = factory.noneOf(2);
 	    for (int i=0;i<FRAMES;i++) {
-		proportions1_upper.add(factory.tuple(universe.atom(i)).product(factory.tuple(universe.atom(framesS1[i]))));
-		proportions2_upper.add(factory.tuple(universe.atom(i)).product(factory.tuple(universe.atom(framesS2[i]))));
+		ti = universe.atom(i);
+		wOrig_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(framesW[i]/GRID))));
+		hOrig_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(framesH[i]/GRID))));
 	    }
-	    bounds.boundExactly(proportions1, proportions1_upper);
-	    bounds.boundExactly(proportions2, proportions2_upper);
+	    bounds.boundExactly(wOrig, wOrig_upper);
+	    bounds.boundExactly(hOrig, hOrig_upper);
+
+	    TupleSet scale_upper = factory.noneOf(2);
+	    for (int i=0;i<FRAMES;i++) {
+		ti = universe.atom(i);
+		for (int j=1;j<MAXSCALE;j++) {
+		    scale_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
+		}
+	    }
+	    bounds.bound(scale, scale_upper);
 	    
-	    TupleSet x1_lower = factory.noneOf(2);
-	    TupleSet x1_upper = factory.noneOf(2);
+	    TupleSet x_upper = factory.noneOf(2);
 	    for (int i=0;i<FRAMES;i++) {
 		ti = universe.atom(i);
 		for (int j=0;j<=MAXX;j++) {
-		    x1_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
+		    x_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
 		}
 	    }
-	    bounds.bound(x1, x1_lower, x1_upper);
-	    bounds.bound(x2, x1_lower, x1_upper);
+	    bounds.bound(x, x_upper);
 
-	    TupleSet y1_lower = factory.noneOf(2);
-	    TupleSet y1_upper = factory.noneOf(2);
+	    TupleSet w_upper = factory.noneOf(2);
+	    for (int i=0;i<FRAMES;i++) {
+		ti = universe.atom(i);
+		for (int j=1;j<=MAXX;j++) {
+		    w_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
+		}
+	    }
+	    bounds.bound(w, w_upper);
+
+	    TupleSet y_upper = factory.noneOf(2);
 	    for (int i=0;i<FRAMES;i++) {
 		ti = universe.atom(i);
 		for (int j=0;j<=MAXY;j++) {
-		    y1_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
+		    y_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
 		}
 	    }
-	    bounds.bound(y1, y1_lower, y1_upper);
-	    bounds.bound(y2, y1_lower, y1_upper);
+	    bounds.bound(y, y_upper);
+
+	    TupleSet h_upper = factory.noneOf(2);
+	    for (int i=0;i<FRAMES;i++) {
+		ti = universe.atom(i);
+		for (int j=1;j<=MAXY;j++) {
+		    h_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
+		}
+	    }
+	    bounds.bound(h, h_upper);
 
 	    // build constraint formula
 
@@ -295,36 +320,38 @@ public class AllWinsDemo {
 	    IntExpression x_1 = IntConstant.constant(1);
 	    IntExpression x_2 = IntConstant.constant(2);
 	    IntExpression x_3 = IntConstant.constant(3);
+	    IntExpression x_mx = IntConstant.constant(MAXX);
+	    IntExpression y_my = IntConstant.constant(MAXY);
 
-	    // end range > start range
+	    // w * scale = wOrig, h * scale = hOrig
 	    Variable va = Variable.unary("va");
-	    Formula f10 = va.join(x2).sum().gt(va.join(x1).sum().plus(x_3));
-	    Formula f20 = va.join(y2).sum().gt(va.join(y1).sum().plus(x_3));
+	    Formula f10 = va.join(wOrig).sum().eq(va.join(w).sum().multiply(va.join(scale).sum()));
+	    Formula f20 = va.join(hOrig).sum().eq(va.join(h).sum().multiply(va.join(scale).sum()));
 	    Formula f30 = f10.and(f20).forAll(va.oneOf(idxs));
 
-	    // preserved proportions
-	    Formula f210 = va.join(x2).sum().minus(va.join(x1).sum()).divide(va.join(y2).sum().minus(va.join(y1).sum())).eq(va.join(proportions1).sum());
-	    Formula f220 = va.join(y2).sum().minus(va.join(y1).sum()).divide(va.join(x2).sum().minus(va.join(x1).sum())).eq(va.join(proportions2).sum());
-	    Formula f230 = f210.and(f220).forAll(va.oneOf(idxs));
+	    // x2 < MAXX, y2 < MAXY
+	    Formula f110 = va.join(x).sum().plus(va.join(w).sum()).lt(x_mx);
+	    Formula f120 = va.join(y).sum().plus(va.join(h).sum()).lt(y_my);
+	    Formula f130 = f110.and(f120).forAll(va.oneOf(idxs));
 
 	    // no overlaps
 	    Variable vb = Variable.unary("vb");
 	    Variable vc = Variable.unary("vc");
-	    Formula f110 = vb.join(x1).sum().gt(vc.join(x2).sum());
-	    Formula f120 = vb.join(x2).sum().lt(vc.join(x1).sum());
-	    Formula f115 = vb.join(y1).sum().gt(vc.join(y2).sum());
-	    Formula f125 = vb.join(y2).sum().lt(vc.join(y1).sum());
-	    Formula f130 = vb.product(vc).in(disjIdxs);
-	    Formula f135 = f110.or(f120).or(f115).or(f125);
-	    Formula f140 = f130.implies(f135);
-	    Formula f150 = f140.forAll(vc.oneOf(idxs)).forAll(vb.oneOf(idxs));
+	    Formula f210 = vb.join(x).sum().gt(vc.join(x).sum().plus(vc.join(w).sum()));
+	    Formula f215 = vc.join(x).sum().gt(vb.join(x).sum().plus(vb.join(w).sum()));
+	    Formula f220 = vb.join(y).sum().gt(vc.join(y).sum().plus(vc.join(h).sum()));
+	    Formula f225 = vb.join(y).sum().gt(vb.join(y).sum().plus(vb.join(h).sum()));
+	    Formula f230 = vb.product(vc).in(disjIdxs);
+	    Formula f235 = f210.or(f220).or(f215).or(f225);
+	    Formula f240 = f230.implies(f235);
+	    Formula f250 = f240.forAll(vc.oneOf(idxs)).forAll(vb.oneOf(idxs));
 
-	    Formula f990 = f30.and(f230).and(f150);
+	    Formula f990 = f30.and(f130).and(f250);
 
-	    Formula formula = Formula.compose(FormulaOperator.AND, x1.function(idxs,xm), 
-					 x2.function(idxs,xm), y1.function(idxs,ym), 
-					 y2.function(idxs,ym), f990);
-	    	    
+	    Formula formula = Formula.compose(FormulaOperator.AND, x.function(idxs,xm), 
+					      y.function(idxs,xm), w.function(idxs,xm), 
+					      h.function(idxs,ym), scale.function(idxs,sm), f990);
+	    
 	    Solver solver = new Solver();
 	    solver.options().setSolver(SATFactory.MiniSat);
 	    solver.options().setBitwidth(10);
@@ -343,18 +370,16 @@ public class AllWinsDemo {
 		//return (false);
 	    } else {
 		satisfiable[0] = true;
-		Iterator<Tuple> iterX1 = sol.instance().tuples(x1).iterator();
-		Iterator<Tuple> iterX2 = sol.instance().tuples(x2).iterator();
-		Iterator<Tuple> iterY1 = sol.instance().tuples(y1).iterator();
-		Iterator<Tuple> iterY2 = sol.instance().tuples(y2).iterator();
+		Iterator<Tuple> iterX = sol.instance().tuples(x).iterator();
+		Iterator<Tuple> iterY = sol.instance().tuples(y).iterator();
+		Iterator<Tuple> iterW = sol.instance().tuples(w).iterator();
+		Iterator<Tuple> iterH = sol.instance().tuples(h).iterator();
 		
 		for(int i = 0; i < FRAMES; i++) {
-		    framesX1[i] = GRID * Integer.parseInt((String)iterX1.next().atom(1));
-		    framesX2[i] = GRID * Integer.parseInt((String)iterX2.next().atom(1));
-		    framesY1[i] = GRID * Integer.parseInt((String)iterY1.next().atom(1));
-		    framesY2[i] = GRID * Integer.parseInt((String)iterY2.next().atom(1));
-		    framesS1[i] = (framesX2[i]-framesX1[i])/(framesY2[i]-framesY1[i]);
-		    framesS2[i] = (framesY2[i]-framesY1[i])/(framesX2[i]-framesX1[i]);
+		    framesX[i] = GRID * Integer.parseInt((String)iterX.next().atom(1));
+		    framesY[i] = GRID * Integer.parseInt((String)iterY.next().atom(1));
+		    framesW[i] = GRID * Integer.parseInt((String)iterW.next().atom(1));
+		    framesH[i] = GRID * Integer.parseInt((String)iterH.next().atom(1));
 		}
 
 	    }
