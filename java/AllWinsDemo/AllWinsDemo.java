@@ -32,8 +32,10 @@ public class AllWinsDemo {
     static int STEPS = 10;
     static int RESOLX = 1200;
     static int RESOLY = 800;
-    static int GRID = 50;
+    static int GRID = 25;
     static int MAXSCALE = 10;
+    static int MINW = 180;
+    static int MINH = 90;
     final Random rand = new Random();
 
     public JFrame frames[];
@@ -99,10 +101,10 @@ public class AllWinsDemo {
 
 	JFrame frame;
 	for(int i=0;i<FRAMES;i++) {
-	    framesX[i] = rand.nextInt(RESOLX-GRID+1)+GRID;
-	    framesW[i] = rand.nextInt(RESOLX-framesX[i]+GRID+1)+GRID;
-	    framesY[i] = rand.nextInt(RESOLY-GRID+1)+GRID;
-	    framesH[i] = rand.nextInt(RESOLY-framesY[i]+GRID+1)+GRID;
+	    framesX[i] = rand.nextInt(RESOLX-MINW-GRID);
+	    framesY[i] = rand.nextInt(RESOLY-MINH-GRID);
+	    framesW[i] = Math.max(rand.nextInt(RESOLX-framesX[i]),MINW);
+	    framesH[i] = Math.max(rand.nextInt(RESOLY-framesY[i]),MINH);
 
 	    frames[i] = new JFrame();
 	    frame = frames[i];
@@ -219,6 +221,9 @@ public class AllWinsDemo {
 	    
 	    int MAXX = RESOLX/GRID;
 	    int MAXY = RESOLY/GRID;
+	    int GRIDMINW = MINW/GRID;
+	    int GRIDMINH = MINH/GRID;
+
 	    int MAXINT = MAXX;
 	    String[] atoms = new String[MAXINT+1];
 	    for(int i=0;i<=MAXINT;i++) {
@@ -287,15 +292,6 @@ public class AllWinsDemo {
 	    }
 	    bounds.bound(x, x_upper);
 
-	    TupleSet w_upper = factory.noneOf(2);
-	    for (int i=0;i<FRAMES;i++) {
-		ti = universe.atom(i);
-		for (int j=1;j<=MAXX;j++) {
-		    w_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
-		}
-	    }
-	    bounds.bound(w, w_upper);
-
 	    TupleSet y_upper = factory.noneOf(2);
 	    for (int i=0;i<FRAMES;i++) {
 		ti = universe.atom(i);
@@ -305,10 +301,19 @@ public class AllWinsDemo {
 	    }
 	    bounds.bound(y, y_upper);
 
+	    TupleSet w_upper = factory.noneOf(2);
+	    for (int i=0;i<FRAMES;i++) {
+		ti = universe.atom(i);
+		for (int j=GRIDMINW;j<=MAXX;j++) {
+		    w_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
+		}
+	    }
+	    bounds.bound(w, w_upper);
+
 	    TupleSet h_upper = factory.noneOf(2);
 	    for (int i=0;i<FRAMES;i++) {
 		ti = universe.atom(i);
-		for (int j=1;j<=MAXY;j++) {
+		for (int j=GRIDMINH;j<=MAXY;j++) {
 		    h_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
 		}
 	    }
