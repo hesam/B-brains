@@ -12,10 +12,12 @@ import java.util.concurrent.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Iterator;
+import java.util.Random;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
@@ -26,14 +28,15 @@ import javax.swing.JPanel;
 
 public class AllWinsDemo {
 
-    static int FRAMES = 8;
+    static int FRAMES = 3;
     static int STEPS = 10;
     static int RESOLX = 1200;
     static int RESOLY = 800;
     static int GRID = 50;
+    final Random rand = new Random();
 
     public JFrame frames[];
-    public int framesX1[], framesY1[], framesX2[], framesY2[];
+    public int framesX1[], framesY1[], framesX2[], framesY2[],framesS1[],framesS2[];
     public boolean waitingForSolver;
     public boolean [] satisfiable;
     private JButton btnQuit,btnDo;
@@ -52,7 +55,7 @@ public class AllWinsDemo {
 
 		    for(int i=0;i<FRAMES;i++) {
 			System.out.print("frame #" + i + ": ");
-			System.out.println("[" + framesX1[i]/GRID + " " + framesX2[i]/GRID + "] [" + framesY1[i]/GRID + " " + framesY2[i]/GRID + "]");
+			System.out.println("[" + framesX1[i]/GRID + " " + framesX2[i]/GRID + "] [" + framesY1[i]/GRID + " " + framesY2[i]/GRID + "] " + framesS1[i] + " " + framesS2[i]);
 		    }
 		    
 		    if(satisfiable[0]) {
@@ -78,7 +81,7 @@ public class AllWinsDemo {
 				  new ActionListener(){
 				      public void actionPerformed(ActionEvent e){
 					  waitingForSolver = true;
-					  new SolverThread(barrier,satisfiable,framesX1,framesX2,framesY1,framesY2).start();
+					  new SolverThread(barrier,satisfiable,framesX1,framesX2,framesY1,framesY2,framesS1,framesS2).start();
 				      }
 				  }
 				  );
@@ -92,25 +95,27 @@ public class AllWinsDemo {
 	framesY1 = new int[FRAMES];
 	framesX2 = new int[FRAMES];
 	framesY2 = new int[FRAMES];
+	framesS1 = new int[FRAMES];
+	framesS2 = new int[FRAMES];
+
 	JFrame frame;
 	for(int i=0;i<FRAMES;i++) {
+	    framesX1[i] = rand.nextInt(RESOLX-GRID+1)+GRID;
+	    framesX2[i] = framesX1[i] + rand.nextInt(RESOLX-framesX1[i]-GRID+1)+GRID;
+	    framesY1[i] = rand.nextInt(RESOLY-GRID+1)+GRID;
+	    framesY2[i] = framesY1[i] + rand.nextInt(RESOLY-framesY1[i]-GRID+1)+GRID;
+
 	    frames[i] = new JFrame();
 	    frame = frames[i];
-	    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-	    
-	    JPanel panel = new JPanel();
-	    //LayoutManager layout = new BoxLayout(panel, BoxLayout.X_AXIS);
-	    //panel.setLayout(layout);
-	    
+	    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);	   
+	    JPanel panel = new JPanel();	    
 	    panel.add(new JLabel("a"+i));
 	    
 	    frame.add(panel);
-	    framesX1[i] = i*60+100;
-	    framesY1[i] = i*50+100;
-	    framesX2[i] = framesX1[i]*2;
-	    framesY2[i] = framesY1[i]*2;
+	    framesS1[i] = (framesX2[i]-framesX1[i])/(framesY2[i]-framesY1[i]);
+	    framesS2[i] = (framesY2[i]-framesY1[i])/(framesX2[i]-framesX1[i]);
 	    System.out.print("frame #" + i + ": ");
-	    System.out.println("[" + framesX1[i]/GRID + " " + framesX2[i]/GRID + "] [" + framesY1[i]/GRID + " " + framesY2[i]/GRID + "]");
+	    System.out.println("[" + framesX1[i]/GRID + " " + framesX2[i]/GRID + "] [" + framesY1[i]/GRID + " " + framesY2[i]/GRID + "] " + framesS1[i] + " " + framesS2[i]);
 	    frame.setSize(framesX2[i]-framesX1[i],framesY2[i]-framesY1[i]);
 	    frame.setLocation(framesX1[i],framesY1[i]);
 	    frame.setVisible(true);
@@ -190,14 +195,16 @@ public class AllWinsDemo {
     private static class SolverThread extends Thread { 
 	CyclicBarrier barrier; 
 	boolean [] satisfiable;
-	int framesX1[], framesY1[], framesX2[], framesY2[];
-	SolverThread(CyclicBarrier barrier, boolean [] satisfiable, int [] framesX1, int [] framesX2, int [] framesY1, int [] framesY2) { 
+	int framesX1[], framesY1[], framesX2[], framesY2[], framesS1[], framesS2[];
+	SolverThread(CyclicBarrier barrier, boolean [] satisfiable, int [] framesX1, int [] framesX2, int [] framesY1, int [] framesY2, int [] framesS1, int [] framesS2) { 
 	    this.barrier = barrier;
 	    this.satisfiable = satisfiable;
 	    this.framesX1 = framesX1;
 	    this.framesX2 = framesX2;
 	    this.framesY1 = framesY1;
 	    this.framesY2 = framesY2;
+	    this.framesS1 = framesS1;
+	    this.framesS2 = framesS2;
 	} 
 	public void run() { 
 	    System.out.println("in thread..."); 
@@ -210,6 +217,8 @@ public class AllWinsDemo {
 	    Relation x2 = Relation.nary("x2", 2); // X2s
 	    Relation y1 = Relation.nary("y1", 2); // Y1s
 	    Relation y2 = Relation.nary("y2", 2); // Y2s
+	    Relation proportions1 = Relation.nary("proportions1", 2); // width Scales
+	    Relation proportions2 = Relation.nary("proportions2", 2); // height Scales
 	    
 	    int MAXX = RESOLX/GRID;
 	    int MAXY = RESOLY/GRID;
@@ -248,6 +257,15 @@ public class AllWinsDemo {
 	    TupleSet ym_upper=factory.range(factory.tuple(universe.atom(0)),
 					    factory.tuple(universe.atom(MAXY)));
 	    bounds.boundExactly(ym, ym_upper);
+
+	    TupleSet proportions1_upper = factory.noneOf(2);
+	    TupleSet proportions2_upper = factory.noneOf(2);
+	    for (int i=0;i<FRAMES;i++) {
+		proportions1_upper.add(factory.tuple(universe.atom(i)).product(factory.tuple(universe.atom(framesS1[i]))));
+		proportions2_upper.add(factory.tuple(universe.atom(i)).product(factory.tuple(universe.atom(framesS2[i]))));
+	    }
+	    bounds.boundExactly(proportions1, proportions1_upper);
+	    bounds.boundExactly(proportions2, proportions2_upper);
 	    
 	    TupleSet x1_lower = factory.noneOf(2);
 	    TupleSet x1_upper = factory.noneOf(2);
@@ -272,28 +290,36 @@ public class AllWinsDemo {
 	    bounds.bound(y2, y1_lower, y1_upper);
 
 	    // build constraint formula
+
 	    IntExpression x_0 = IntConstant.constant(0);
 	    IntExpression x_1 = IntConstant.constant(1);
 	    IntExpression x_2 = IntConstant.constant(2);
 	    IntExpression x_3 = IntConstant.constant(3);
 
+	    // end range > start range
 	    Variable va = Variable.unary("va");
 	    Formula f10 = va.join(x2).sum().gt(va.join(x1).sum().plus(x_3));
 	    Formula f20 = va.join(y2).sum().gt(va.join(y1).sum().plus(x_3));
 	    Formula f30 = f10.and(f20).forAll(va.oneOf(idxs));
 
+	    // preserved proportions
+	    Formula f210 = va.join(x2).sum().minus(va.join(x1).sum()).divide(va.join(y2).sum().minus(va.join(y1).sum())).eq(va.join(proportions1).sum());
+	    Formula f220 = va.join(y2).sum().minus(va.join(y1).sum()).divide(va.join(x2).sum().minus(va.join(x1).sum())).eq(va.join(proportions2).sum());
+	    Formula f230 = f210.and(f220).forAll(va.oneOf(idxs));
+
+	    // no overlaps
 	    Variable vb = Variable.unary("vb");
 	    Variable vc = Variable.unary("vc");
-	    Formula f110 = vb.join(x2).sum().lt(vc.join(x1).sum());
-	    Formula f120 = vb.join(x1).sum().gt(vc.join(x2).sum());
-	    Formula f115 = vb.join(y2).sum().lt(vc.join(y1).sum());
-	    Formula f125 = vb.join(y1).sum().gt(vc.join(y2).sum());
+	    Formula f110 = vb.join(x1).sum().gt(vc.join(x2).sum());
+	    Formula f120 = vb.join(x2).sum().lt(vc.join(x1).sum());
+	    Formula f115 = vb.join(y1).sum().gt(vc.join(y2).sum());
+	    Formula f125 = vb.join(y2).sum().lt(vc.join(y1).sum());
 	    Formula f130 = vb.product(vc).in(disjIdxs);
 	    Formula f135 = f110.or(f120).or(f115).or(f125);
 	    Formula f140 = f130.implies(f135);
 	    Formula f150 = f140.forAll(vc.oneOf(idxs)).forAll(vb.oneOf(idxs));
 
-	    Formula f990 = f30.and(f150);
+	    Formula f990 = f30.and(f230).and(f150);
 
 	    Formula formula = Formula.compose(FormulaOperator.AND, x1.function(idxs,xm), 
 					 x2.function(idxs,xm), y1.function(idxs,ym), 
@@ -301,7 +327,7 @@ public class AllWinsDemo {
 	    	    
 	    Solver solver = new Solver();
 	    solver.options().setSolver(SATFactory.MiniSat);
-	    solver.options().setBitwidth(9);
+	    solver.options().setBitwidth(10);
 	    solver.options().setFlatten(false);
 	    solver.options().setIntEncoding(Options.IntEncoding.TWOSCOMPLEMENT);
 	    solver.options().setSymmetryBreaking(20);
@@ -327,6 +353,8 @@ public class AllWinsDemo {
 		    framesX2[i] = GRID * Integer.parseInt((String)iterX2.next().atom(1));
 		    framesY1[i] = GRID * Integer.parseInt((String)iterY1.next().atom(1));
 		    framesY2[i] = GRID * Integer.parseInt((String)iterY2.next().atom(1));
+		    framesS1[i] = (framesX2[i]-framesX1[i])/(framesY2[i]-framesY1[i]);
+		    framesS2[i] = (framesY2[i]-framesY1[i])/(framesX2[i]-framesX1[i]);
 		}
 
 	    }

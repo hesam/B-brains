@@ -1,3 +1,17 @@
+/*
+
+ + Requires:
+ Kodkod solver (kodkod.jar)
+ SAT Solver (solvers.zip) 
+ download from: http://alloy.mit.edu/kodkod/
+
+ + Compiling:
+ > javac -cp $KodkodPath/kodkod.jar TextArea1.java
+
+ + Running:
+ > java -cp $TextAreaPath/TextArea1:$KodkodPath/kodkod.jar -Djava.library.path=$KodkodPath/x86-mac TextArea1 
+
+ */
 
 import static kodkod.ast.Expression.UNIV;
 
@@ -24,7 +38,7 @@ public class TextArea1 {
     private JScrollPane sbrText; // Scroll pane for text area
     private JButton btnQuit,btnOpt,btnOpt50,btnCols;
     public String content;
-    public boolean evenColumns;
+    public boolean rightJustify;
     public int optimizationLevel;
     public int boxHeigth, boxWidth, layoutWidth;
     public String [] words;
@@ -33,17 +47,16 @@ public class TextArea1 {
     public boolean waitingForSolver;
     public boolean [] satisfiable;
     //Constructor
-    public TextArea1(int bh, int bw, int lw, int optimizeLevel, boolean evenCols){ 
+    public TextArea1(int bh, int bw, int lw, int optimizeLevel, boolean rJustify){ 
 
 	boxHeigth = bh;
 	boxWidth = bw;
 	layoutWidth = lw;
 	optimizationLevel = optimizeLevel;
-	evenColumns = evenCols;
+	rightJustify = rJustify;
 	waitingForSolver = false;
 	satisfiable = new boolean[1];
 	// init solver thread
-
 	Runnable getSol = new Runnable() { 
 		public void run() { 
 		    System.out.println("Results are in!"); 
@@ -86,19 +99,19 @@ public class TextArea1 {
 	f.getContentPane().setLayout(new FlowLayout());
       
         // Create Scrolling Text Area in Swing
-        ta = new JTextAreaKeyListener("this is one too simplistic text box for sure but it can handle line breaking, as well as even columns for you. You can even set the optimization level: no optimizations, 50%, or 100%!", boxHeigth, boxWidth,optimizationLevel,evenColumns,barrier);
+        ta = new JTextAreaKeyListener("this is one too simplistic text box for sure but it can handle line breaking, as well as right justify for you. You can even set the optimization level: no optimizations, 50%, or 100%!", boxHeigth, boxWidth,optimizationLevel,rightJustify,barrier);
 	Font font = new Font("Monaco", Font.PLAIN, 14);
         ta.setFont(font);
 	ta.setLineWrap(false);
 	sbrText = new JScrollPane(ta);
 	sbrText.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-	// Create Even Columns Button
-        btnCols = new JButton("Even Columns");
+	// Create Right Justify Button
+        btnCols = new JButton("Right Justify");
         btnCols.addActionListener(
 				  new ActionListener(){
 				      public void actionPerformed(ActionEvent e){
-					  evenColumns = !evenColumns;
-					  Color c = evenColumns ? Color.blue : Color.gray;
+					  rightJustify = !rightJustify;
+					  Color c = rightJustify ? Color.blue : Color.gray;
 					  btnCols.setForeground(c);
 				      }
 				  }
@@ -131,7 +144,7 @@ public class TextArea1 {
         f.getContentPane().add(btnCols);
         f.getContentPane().add(btnOpt);
         f.getContentPane().add(btnQuit);
-	btnCols.setForeground(evenColumns ? Color.blue : Color.gray);
+	btnCols.setForeground(rightJustify ? Color.blue : Color.gray);
 	// Close when the close button is clicked
 	f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	
@@ -155,7 +168,7 @@ public class TextArea1 {
     private class JTextAreaKeyListener extends JTextArea implements KeyListener 
     {
 	CyclicBarrier barrier;
-	public JTextAreaKeyListener(String text, int rows, int columns,  int optimizationLevel, boolean evenColumns, CyclicBarrier barrier) {
+	public JTextAreaKeyListener(String text, int rows, int columns,  int optimizationLevel, boolean rightJustify, CyclicBarrier barrier) {
 	    super(text,rows,columns);	    
 	    this.barrier = barrier;	    
 	    // allow frame to process Key events
@@ -199,7 +212,7 @@ public class TextArea1 {
 			budget--;
 			
 			c = 0;
-			if (optimizationLevel > 1 && evenColumns && i < words.length) {
+			if (optimizationLevel > 1 && rightJustify && i < words.length) {
 			    while(budget < layoutWidth) {
 				if (prev+c==i-1) { c = 0; }
 				wordSps[prev+c]++;
@@ -213,7 +226,7 @@ public class TextArea1 {
 		}
 		////////////////////////////////////////
 
-		new SolverThread(barrier,layoutWidth,words,wordSps,optimizationLevel,evenColumns,satisfiable).start();
+		new SolverThread(barrier,layoutWidth,words,wordSps,optimizationLevel,rightJustify,satisfiable).start();
 	    }	
 	}
 	
@@ -230,20 +243,20 @@ public class TextArea1 {
 
     private static class SolverThread extends Thread { 
 	CyclicBarrier barrier; 
-	boolean evenColumns;
+	boolean rightJustify;
 	int optimizationLevel;
 	int width;
 	String [] words;
 	Integer [] wordSps;
 	boolean [] satisfiable;
-	SolverThread(CyclicBarrier barrier, int width, String [] words, Integer [] wordSps, int optimizationLevel, boolean evenColumns, boolean [] satisfiable) { 
+	SolverThread(CyclicBarrier barrier, int width, String [] words, Integer [] wordSps, int optimizationLevel, boolean rightJustify, boolean [] satisfiable) { 
 	    this.barrier = barrier;
 	    this.width = width;
 	    this.words = words;
 	    this.wordSps = wordSps;
 	    this.satisfiable = satisfiable;
 	    this.optimizationLevel = optimizationLevel;
-	    this.evenColumns = evenColumns;
+	    this.rightJustify = rightJustify;
 	} 
 	public void run() { 
 	    System.out.println("in thread..."); 
@@ -259,7 +272,7 @@ public class TextArea1 {
 	    
 	    int MAXINT = Math.max(words.length,width);
 	    int NEGONE = MAXINT + 1;
-	    int MAXSPACE = evenColumns ? 5 : 1; // width / 2
+	    int MAXSPACE = rightJustify ? 5 : 1; // width / 2
 	    String[] atoms = new String[MAXINT+2];
 	    for(int i=0;i<=MAXINT;i++) {
 		atoms[i] = Integer.toString(i);
@@ -413,16 +426,20 @@ public class TextArea1 {
 	    Variable vh = Variable.unary("vh");
 	    Formula x853 = x843.join(x_0.toExpression()).count().eq(x_1);
 	    Formula x854 = x824.toExpression().join(r3).sum().eq(x_0);
-	    Expression x848 = x_0.toExpression().union(x_1.toExpression()).union(x_n1.toExpression());
-	    Formula x849 = vh.join(r3).sum().minus(vh.sum().plus(x_1).toExpression().join(r3).sum()).toExpression().in(x848).forAll(vh.oneOf(x830));
-	    Formula x855 = x853.and(x854).and(x849);
+	    IntExpression x890 = vh.join(r3).sum();
+	    IntExpression x891 = vh.sum().plus(x_1).toExpression().join(r3).sum();
+	    Formula x8491 = x890.eq(x891);
+	    Formula x8492 = x890.eq(x891.plus(x_1));
+	    Formula x8493 = x891.eq(x890.plus(x_1));
+	    Formula x849 =  x8491.or(x8492).or(x8493);
+	    Formula x855 = x853.and(x854).and(x849).forAll(vh.oneOf(x830));
 	    IntExpression x857 = x824.plus(x_1).toExpression().join(r0).sum(); // wd next line
 	    Formula x88 = x825.plus(x851).plus(x857).gt(x80);
 	    Decls x89=vd.oneOf(x14);
 	    Formula xOptSps=x88.forAll(x89);
 
 	    // length line = width:
-	    Formula x86 = evenColumns ? x85.eq(x80) : x85.lte(x80); 
+	    Formula x86 = rightJustify ? x85.eq(x80) : x85.lte(x80); 
 	    Formula x850 = x83.join(r3).difference(x_0.toExpression()).difference(x_1.toExpression()).no();
 	    Formula x856 = x853.and(x850);
 	    Decls x87=vd.oneOf(x14);
@@ -479,11 +496,11 @@ public class TextArea1 {
     }
     
     public static void main(String args[]){
-	boolean evenCols = true;
+	boolean rJustify = true;
 	int  optimizeLevel = 0;
 	int textBoxHeight = 20, textBoxWidth = 60, textBoxLayoutWidth = 50;
 
-        TextArea1 gui = new TextArea1(textBoxHeight, textBoxWidth, textBoxLayoutWidth, optimizeLevel, evenCols);
+        TextArea1 gui = new TextArea1(textBoxHeight, textBoxWidth, textBoxLayoutWidth, optimizeLevel, rJustify);
         gui.launchFrame();
     }
 }
