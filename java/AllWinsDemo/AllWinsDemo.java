@@ -18,12 +18,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-
 
 
 public class AllWinsDemo {
@@ -31,11 +29,13 @@ public class AllWinsDemo {
     static int FRAMES = 8;
     static int STEPS = 10;
     static int RESOLX = 1200;
-    static int RESOLY = 800;
-    static int GRID = 25;
-    static int MAXSCALE = 10;
-    static int MINW = 180;
-    static int MINH = 90;
+    static int RESOLY = 780;
+    static int GRID = 60;
+    static int WGRID = 120;
+    static int HGRID = 120;
+    static int MAXSCALE = 3;
+    static int MINW = 120;
+    static int MINH = 120;
     final Random rand = new Random();
 
     public JFrame frames[];
@@ -100,11 +100,15 @@ public class AllWinsDemo {
 	framesH = new int[FRAMES];
 
 	JFrame frame;
+	System.out.println(RESOLX/GRID-(MINW-GRID)/GRID);
+	System.out.println(RESOLY/GRID-(MINH-GRID)/GRID);
+	System.out.println(RESOLX/WGRID-(MINW-WGRID)/WGRID);
+	System.out.println(RESOLY/HGRID-(MINH-HGRID)/HGRID);
 	for(int i=0;i<FRAMES;i++) {
-	    framesX[i] = rand.nextInt(RESOLX-MINW-GRID);
-	    framesY[i] = rand.nextInt(RESOLY-MINH-GRID);
-	    framesW[i] = Math.max(rand.nextInt(RESOLX-framesX[i]),MINW);
-	    framesH[i] = Math.max(rand.nextInt(RESOLY-framesY[i]),MINH);
+	    framesX[i] = rand.nextInt(RESOLX/GRID-(MINW-WGRID)/WGRID)*GRID;
+	    framesY[i] = rand.nextInt(RESOLY/GRID-(MINH-WGRID)/HGRID)*GRID;
+	    framesW[i] = Math.max(rand.nextInt(Math.max(1,(RESOLX-framesX[i])/WGRID-(MINW-WGRID)/WGRID))*WGRID,MINW);
+	    framesH[i] = Math.max(rand.nextInt(Math.max(1,(RESOLY-framesY[i])/HGRID-(MINH-HGRID)/HGRID))*HGRID,MINH);
 
 	    frames[i] = new JFrame();
 	    frame = frames[i];
@@ -217,12 +221,10 @@ public class AllWinsDemo {
 	    Relation h = Relation.nary("h", 2); // Heigths
 	    Relation wOrig = Relation.nary("wOrig", 2); // orig Widths
 	    Relation hOrig = Relation.nary("hOrig", 2); // orig Heigths
-	    Relation scale = Relation.nary("scale", 2); // Scales
+	    Relation scale = Relation.unary("scale"); // Scale
 	    
 	    int MAXX = RESOLX/GRID;
 	    int MAXY = RESOLY/GRID;
-	    int GRIDMINW = MINW/GRID;
-	    int GRIDMINH = MINH/GRID;
 
 	    int MAXINT = MAXX;
 	    String[] atoms = new String[MAXINT+1];
@@ -274,12 +276,9 @@ public class AllWinsDemo {
 	    bounds.boundExactly(wOrig, wOrig_upper);
 	    bounds.boundExactly(hOrig, hOrig_upper);
 
-	    TupleSet scale_upper = factory.noneOf(2);
-	    for (int i=0;i<FRAMES;i++) {
-		ti = universe.atom(i);
-		for (int j=1;j<MAXSCALE;j++) {
-		    scale_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
-		}
+	    TupleSet scale_upper = factory.noneOf(1);
+	    for (int j=1;j<=MAXSCALE;j++) {
+		scale_upper.add(factory.tuple(universe.atom(j)));
 	    }
 	    bounds.bound(scale, scale_upper);
 	    
@@ -300,21 +299,27 @@ public class AllWinsDemo {
 		}
 	    }
 	    bounds.bound(y, y_upper);
-
 	    TupleSet w_upper = factory.noneOf(2);
 	    for (int i=0;i<FRAMES;i++) {
+		System.out.print("i=");
+		System.out.println(i);
 		ti = universe.atom(i);
-		for (int j=GRIDMINW;j<=MAXX;j++) {
-		    w_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
+		int wpg = framesW[i]/GRID;
+		for (int j=1;j<=MAXSCALE;j++) {
+		    System.out.println(wpg/j);
+		    w_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(wpg/j))));
 		}
 	    }
 	    bounds.bound(w, w_upper);
-
 	    TupleSet h_upper = factory.noneOf(2);
 	    for (int i=0;i<FRAMES;i++) {
+		System.out.print("i=");
+		System.out.println(i);
 		ti = universe.atom(i);
-		for (int j=GRIDMINH;j<=MAXY;j++) {
-		    h_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
+		int hpg = framesH[i]/GRID;
+		for (int j=1;j<=MAXSCALE;j++) {
+		    System.out.println(hpg/j);
+		    h_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(hpg/j))));
 		}
 	    }
 	    bounds.bound(h, h_upper);
@@ -330,8 +335,8 @@ public class AllWinsDemo {
 
 	    // w * scale = wOrig, h * scale = hOrig
 	    Variable va = Variable.unary("va");
-	    Formula f10 = va.join(wOrig).sum().eq(va.join(w).sum().multiply(va.join(scale).sum()));
-	    Formula f20 = va.join(hOrig).sum().eq(va.join(h).sum().multiply(va.join(scale).sum()));
+	    Formula f10 = va.join(wOrig).sum().eq(va.join(w).sum().multiply(scale.sum()));
+	    Formula f20 = va.join(hOrig).sum().eq(va.join(h).sum().multiply(scale.sum()));
 	    Formula f30 = f10.and(f20).forAll(va.oneOf(idxs));
 
 	    // x2 < MAXX, y2 < MAXY
@@ -355,7 +360,7 @@ public class AllWinsDemo {
 
 	    Formula formula = Formula.compose(FormulaOperator.AND, x.function(idxs,xm), 
 					      y.function(idxs,xm), w.function(idxs,xm), 
-					      h.function(idxs,ym), scale.function(idxs,sm), f990);
+					      h.function(idxs,ym), f990);
 	    
 	    Solver solver = new Solver();
 	    solver.options().setSolver(SATFactory.MiniSat);
