@@ -352,7 +352,7 @@ public class AllWinsDemo {
 	    solver.options().setBitwidth(10);
 	    solver.options().setFlatten(false);
 	    solver.options().setIntEncoding(Options.IntEncoding.TWOSCOMPLEMENT);
-	    solver.options().setSymmetryBreaking(20);
+	    solver.options().setSymmetryBreaking(5);
 	    solver.options().setSkolemDepth(0);
 	    System.out.println("Solving...");
 	    System.out.flush();	

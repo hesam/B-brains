@@ -461,8 +461,8 @@ public class TextArea1 {
 	    solver.options().setBitwidth(9);
 	    solver.options().setFlatten(false);
 	    solver.options().setIntEncoding(Options.IntEncoding.TWOSCOMPLEMENT);
-	    solver.options().setSymmetryBreaking(20);
-	    solver.options().setSkolemDepth(0);
+	    solver.options().setSymmetryBreaking(5);
+	    solver.options().setSkolemDepth(2);
 	    System.out.println("Solving...");
 	    System.out.flush();	
 	    Solution sol = solver.solve(f,b);

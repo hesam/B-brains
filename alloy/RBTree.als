@@ -17,14 +17,15 @@ sig Node extends GNode  {
    disj left, right: one GNode
 }
 
-// Binary Tree
+// Binary Tree 
+fact { no RBTree.root.parent }
 fact { no n: Node | n in n.^(left+right) }
 fact { all n: GNode | lone p: Node | p.children = n }
 fact { all n1: GNode, n2: Node | (n2.left = n1 or n2.right = n1) <=> n1.parent = n2 }
 fact { #(Node.value) = #(Node) }
 fact { all n: Node, c: n.left.*(left+right) | c in Node => c.value < n.value }
 fact { all n: Node, c: n.right.*(left+right) | c in Node => c.value > n.value }
-// RB Tree
+// RB Tree 
 fact { RBTree.root.color = Black }
 fact { Leaf.color = Black }
 fact { all n: Node | n.color = Red => n.children.color = Black }
@@ -34,4 +35,4 @@ fact { all disj l1, l2: Leaf |
 fun size [T: RBTree]: one Int { #(T.root.*(left+right).value) }
 fun children [N: Node]: set GNode { N.(left+right) }
 
-run { RB.size = 4 } for 4 int, 9 GNode
+run { {-4}+{-3}+{-2}+{-1}+{0}+{1}+{2}+{3} = RB.root.children.value } for 3 int, exactly 7 Node, exactly 8 Leaf
