@@ -1,3 +1,4 @@
+
 import static kodkod.ast.Expression.UNIV;
 
 import kodkod.ast.*;
@@ -23,11 +24,10 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-
 public class AllWinsDemo {
 
-    static int FRAMES = 8;
-    static int STEPS = 10;
+    static int FRAMES = 10;
+    static int STEPS = 5;
     static int RESOLX = 1200;
     static int RESOLY = 780;
     static int GRID = 60;
@@ -36,6 +36,8 @@ public class AllWinsDemo {
     static int MAXSCALE = 3;
     static int MINW = 120;
     static int MINH = 120;
+    static int MINWG = MINW/GRID;
+    static int MINHG = MINH/GRID;
     final Random rand = new Random();
 
     public JFrame frames[];
@@ -107,8 +109,8 @@ public class AllWinsDemo {
 	for(int i=0;i<FRAMES;i++) {
 	    framesX[i] = rand.nextInt(RESOLX/GRID-(MINW-WGRID)/WGRID)*GRID;
 	    framesY[i] = rand.nextInt(RESOLY/GRID-(MINH-WGRID)/HGRID)*GRID;
-	    framesW[i] = Math.max(rand.nextInt(Math.max(1,(RESOLX-framesX[i])/WGRID-(MINW-WGRID)/WGRID))*WGRID,MINW);
-	    framesH[i] = Math.max(rand.nextInt(Math.max(1,(RESOLY-framesY[i])/HGRID-(MINH-HGRID)/HGRID))*HGRID,MINH);
+	    framesW[i] = Math.max(rand.nextInt(Math.max(2,(RESOLX-framesX[i])/WGRID-(MINW-WGRID)/WGRID))*WGRID,MINW);
+	    framesH[i] = Math.max(rand.nextInt(Math.max(2,(RESOLY-framesY[i])/HGRID-(MINH-HGRID)/HGRID))*HGRID,MINH);
 
 	    frames[i] = new JFrame();
 	    frame = frames[i];
@@ -199,6 +201,7 @@ public class AllWinsDemo {
 	CyclicBarrier barrier; 
 	boolean [] satisfiable;
 	int framesX[], framesY[], framesW[], framesH[];
+	int inpScale;
 	SolverThread(CyclicBarrier barrier, boolean [] satisfiable, int [] framesX, int [] framesY, int [] framesW, int [] framesH) { 
 	    this.barrier = barrier;
 	    this.satisfiable = satisfiable;
@@ -206,12 +209,12 @@ public class AllWinsDemo {
 	    this.framesY = framesY;
 	    this.framesW = framesW;
 	    this.framesH = framesH;
+	    this.inpScale = 1;
 	} 
 	public void run() { 
 	    System.out.println("in thread..."); 
 	    
 	    Relation idxs = Relation.unary("idxs"); // 0 .. FRAMES
-	    Relation sm = Relation.unary("sm"); // 1 .. MAXSCALE
 	    Relation xm = Relation.unary("xm"); // 0 .. max X
 	    Relation ym = Relation.unary("ym"); // 0 .. max Y
 	    Relation disjIdxs = Relation.nary("disjIdxPairs", 2); // disjoint idxs
@@ -221,7 +224,6 @@ public class AllWinsDemo {
 	    Relation h = Relation.nary("h", 2); // Heigths
 	    Relation wOrig = Relation.nary("wOrig", 2); // orig Widths
 	    Relation hOrig = Relation.nary("hOrig", 2); // orig Heigths
-	    Relation scale = Relation.unary("scale"); // Scale
 	    
 	    int MAXX = RESOLX/GRID;
 	    int MAXY = RESOLY/GRID;
@@ -262,10 +264,6 @@ public class AllWinsDemo {
 					    factory.tuple(universe.atom(MAXY)));
 	    bounds.boundExactly(ym, ym_upper);
 
-	    TupleSet sm_upper=factory.range(factory.tuple(universe.atom(1)),
-					    factory.tuple(universe.atom(MAXSCALE)));
-	    bounds.boundExactly(sm, sm_upper);
-
 	    TupleSet wOrig_upper = factory.noneOf(2);
 	    TupleSet hOrig_upper = factory.noneOf(2);
 	    for (int i=0;i<FRAMES;i++) {
@@ -275,12 +273,6 @@ public class AllWinsDemo {
 	    }
 	    bounds.boundExactly(wOrig, wOrig_upper);
 	    bounds.boundExactly(hOrig, hOrig_upper);
-
-	    TupleSet scale_upper = factory.noneOf(1);
-	    for (int j=1;j<=MAXSCALE;j++) {
-		scale_upper.add(factory.tuple(universe.atom(j)));
-	    }
-	    bounds.bound(scale, scale_upper);
 	    
 	    TupleSet x_upper = factory.noneOf(2);
 	    for (int i=0;i<FRAMES;i++) {
@@ -301,26 +293,17 @@ public class AllWinsDemo {
 	    bounds.bound(y, y_upper);
 	    TupleSet w_upper = factory.noneOf(2);
 	    for (int i=0;i<FRAMES;i++) {
-		System.out.print("i=");
-		System.out.println(i);
 		ti = universe.atom(i);
 		int wpg = framesW[i]/GRID;
-		for (int j=1;j<=MAXSCALE;j++) {
-		    System.out.println(wpg/j);
-		    w_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(wpg/j))));
-		}
+		w_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(wpg/inpScale))));
 	    }
 	    bounds.bound(w, w_upper);
 	    TupleSet h_upper = factory.noneOf(2);
 	    for (int i=0;i<FRAMES;i++) {
-		System.out.print("i=");
-		System.out.println(i);
 		ti = universe.atom(i);
 		int hpg = framesH[i]/GRID;
-		for (int j=1;j<=MAXSCALE;j++) {
-		    System.out.println(hpg/j);
-		    h_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(hpg/j))));
-		}
+		h_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(hpg/inpScale))));
+
 	    }
 	    bounds.bound(h, h_upper);
 
@@ -332,11 +315,15 @@ public class AllWinsDemo {
 	    IntExpression x_3 = IntConstant.constant(3);
 	    IntExpression x_mx = IntConstant.constant(MAXX);
 	    IntExpression y_my = IntConstant.constant(MAXY);
+	    IntExpression scale = IntConstant.constant(inpScale);
+
+	    Variable va = Variable.unary("va");
+	    Variable vb = Variable.unary("vb");
+	    Variable vc = Variable.unary("vc");
 
 	    // w * scale = wOrig, h * scale = hOrig
-	    Variable va = Variable.unary("va");
-	    Formula f10 = va.join(wOrig).sum().eq(va.join(w).sum().multiply(scale.sum()));
-	    Formula f20 = va.join(hOrig).sum().eq(va.join(h).sum().multiply(scale.sum()));
+	    Formula f10 = va.join(wOrig).sum().eq(va.join(w).sum().multiply(scale));
+	    Formula f20 = va.join(hOrig).sum().eq(va.join(h).sum().multiply(scale));
 	    Formula f30 = f10.and(f20).forAll(va.oneOf(idxs));
 
 	    // x2 < MAXX, y2 < MAXY
@@ -345,8 +332,6 @@ public class AllWinsDemo {
 	    Formula f130 = f110.and(f120).forAll(va.oneOf(idxs));
 
 	    // no overlaps
-	    Variable vb = Variable.unary("vb");
-	    Variable vc = Variable.unary("vc");
 	    Formula f210 = vb.join(x).sum().gt(vc.join(x).sum().plus(vc.join(w).sum()));
 	    Formula f215 = vc.join(x).sum().gt(vb.join(x).sum().plus(vb.join(w).sum()));
 	    Formula f220 = vb.join(y).sum().gt(vc.join(y).sum().plus(vc.join(h).sum()));
@@ -356,7 +341,7 @@ public class AllWinsDemo {
 	    Formula f240 = f230.implies(f235);
 	    Formula f250 = f240.forAll(vc.oneOf(idxs)).forAll(vb.oneOf(idxs));
 
-	    Formula f990 = f30.and(f130).and(f250);
+	    Formula f990 = f130.and(f30).and(f250);
 
 	    Formula formula = Formula.compose(FormulaOperator.AND, x.function(idxs,xm), 
 					      y.function(idxs,xm), w.function(idxs,xm), 
@@ -376,7 +361,11 @@ public class AllWinsDemo {
 
 	    if (sol.instance()==null) {
 		satisfiable[0] = false;
-		System.out.println("");
+		if (inpScale < MAXSCALE) {
+		    inpScale++;
+		    System.out.println("trying again with scale: " + inpScale);
+		    run();
+		}
 		//return (false);
 	    } else {
 		satisfiable[0] = true;
