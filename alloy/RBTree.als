@@ -20,7 +20,7 @@ sig Node extends GNode  {
 // Binary Tree 
 fact { no RBTree.root.parent }
 fact { no n: Node | n in n.^(left+right) }
-fact { all n: GNode | lone p: Node | p.children = n }
+fact { all n: Node | lone p: Node | p.children = n }
 fact { all n1: GNode, n2: Node | (n2.left = n1 or n2.right = n1) <=> n1.parent = n2 }
 fact { #(Node.value) = #(Node) }
 fact { all n: Node, c: n.left.*(left+right) | c in Node => c.value < n.value }
@@ -29,10 +29,10 @@ fact { all n: Node, c: n.right.*(left+right) | c in Node => c.value > n.value }
 fact { RBTree.root.color = Black }
 fact { Leaf.color = Black }
 fact { all n: Node | n.color = Red => n.children.color = Black }
-fact { all disj l1, l2: Leaf |
+fact { all disj l1, l2: Leaf  |
            #({ n: l1.^parent | n.color = Black }) = #({ n: l2.^parent | n.color = Black }) }
 
 fun size [T: RBTree]: one Int { #(T.root.*(left+right).value) }
 fun children [N: Node]: set GNode { N.(left+right) }
 
-run { {-4}+{-3}+{-2}+{-1}+{0}+{1}+{2}+{3} = RB.root.children.value } for 3 int, exactly 7 Node, exactly 8 Leaf
+run { {2} in RB.root.*(left+right).value and {5} in RB.root.*(left+right).value and {6} in RB.root.*(left+right).value } for 4 int, exactly 3 Node, exactly 4 Leaf
