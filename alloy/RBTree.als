@@ -35,4 +35,4 @@ fact { all disj l1, l2: Leaf  |
 fun size [T: RBTree]: one Int { #(T.root.*(left+right).value) }
 fun children [N: Node]: set GNode { N.(left+right) }
 
-run { {2} in RB.root.*(left+right).value and {5} in RB.root.*(left+right).value and {6} in RB.root.*(left+right).value } for 4 int, exactly 3 Node, exactly 4 Leaf
+run { {0} in RB.root.*(left+right).value and {1} in RB.root.*(left+right).value and {2} in RB.root.*(left+right).value and {3} in RB.root.*(left+right).value and {4} in RB.root.*(left+right).value and {5} in RB.root.*(left+right).value and {6} in RB.root.*(left+right).value and {7} in RB.root.*(left+right).value } for 4 int, exactly 8 Node, exactly 9 Leaf
