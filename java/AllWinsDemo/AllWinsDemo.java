@@ -26,7 +26,7 @@ import javax.swing.JPanel;
 
 public class AllWinsDemo {
 
-    static int FRAMES = 10;
+    static int FRAMES = 5;
     static int STEPS = 5;
     static int RESOLX = 1200;
     static int RESOLY = 780;

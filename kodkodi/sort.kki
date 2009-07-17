@@ -1,0 +1,11 @@
+solver: "MiniSat"
+symmetry_breaking: 10 
+flatten: false
+bit_width: 6
+univ: u31
+bounds r0: {[A0, A7], [A1, A10], [A2, A2], [A3, A4], [A4, A3], [A5, A9], [A6, A3], [A7, A8], [A8, A13], [A9, A5], [A10, A20], [A11, A18], [A12, A9], [A13, A20], [A14, A1], [A15, A10], [A16, A5], [A17, A7], [A18, A12], [A19, A2], [A20, A8], [A21, A5], [A22, A19], [A23, A15], [A24, A5], [A25, A4], [A26, A13], [A27, A11], [A28, A4], [A29, A17]}
+bounds r1: [{}, u30->u31]
+int_bounds: [{A0}, {A1}, {A2}, {A3}, {A4}, {A5}, {A6}, {A7}, {A8}, {A9}, {A10}, {A11}, {A12}, {A13}, {A14}, {A15}, {A16}, {A17}, {A18}, {A19}, {A20}, {A21}, {A22}, {A23}, {A24}, {A25}, {A26}, {A27}, {A28}, {A29}, {A30}]
+solve FUNCTION(r1, u30->one u31) &&
+(all [S0: one u31] | ( #(r1.S0) = #(r0.S0) ))  &&
+ (all [S1: one ( u30 - u1@29 )] | ( sum ( ( S1 ).r1 ) <= sum ( ( Int[ ( sum ( S1 ) + 1 ) ] ).r1 ) ));
