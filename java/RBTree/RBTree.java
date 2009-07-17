@@ -491,6 +491,11 @@ public class RBTree<V>
 	waitingForSolver = true;
 	int numNodes = nodes.size();
 	int[] keys = new int[numNodes];
+	solNodeKeys = new int[numNodes];
+	solNodeColors = new Color[numNodes];
+	solNodeLefts = new int[numNodes];
+	solNodeRights = new int[numNodes];
+
 	int maxVal = 0;
 	for (int i = 0; i < numNodes; i++) {
 	    int val = nodes.get(i).intValue();
@@ -498,12 +503,12 @@ public class RBTree<V>
 	    if (val > maxVal) {
 		maxVal = val;
 	    }
+	    solNodeLefts[i] = -1;
+	    solNodeRights[i] = -1;
 	}
 	int maxInt = Math.max(maxVal,19);
-	solNodeKeys = new int[numNodes];
-	solNodeColors = new Color[numNodes];
-	solNodeLefts = new int[numNodes];
-	solNodeRights = new int[numNodes];
+
+	
 
 	System.out.println("nodes: " + nodes);
 	
@@ -541,11 +546,11 @@ public class RBTree<V>
 	    Relation RB = Relation.unary("RB");
 	    Relation Red = Relation.unary("Red");
 	    Relation Black = Relation.unary("Black");
-	    Relation Leaf = Relation.unary("Leaf");
 	    Relation Node = Relation.unary("Node");
+	    Relation Keys = Relation.unary("Keys");
 	    Relation Root = Relation.nary("RBTree.root", 2);
-	    Relation RelColor = Relation.nary("GNode.color", 2);
-	    Relation Parent = Relation.nary("GNode.parent", 2);
+	    Relation RelColor = Relation.nary("Node.color", 2);
+	    Relation Parent = Relation.nary("Node.parent", 2);
 	    Relation Value = Relation.nary("Node.value", 2);
 	    Relation Left = Relation.nary("Node.left", 2);
 	    Relation Right = Relation.nary("Node.right", 2);
@@ -554,24 +559,23 @@ public class RBTree<V>
 	    int intBitWidth = 1+(int)Math.ceil((double)Math.log(maxInt+1)/(double)Math.log(2));
 	    String[] atoms = new String[maxInt+4];
 	    String[] nodes = new String[numNodes];
-	    String[] leaves = new String[numNodes+1];
 
 	    //            idxs = {  0,  1,  2,  3,  4,  5,  6,  7  }
 	    //            keys = {  0,  8,  2,  6,  4,  9, 12, 13  }
+	    /*
 	    int [] parentFixes = {  2,  5,  3, -1,  2,  3,  5,  6 };
 	    int [] leftFixes   = { -1, -1,  0,  2, -1,  1, -1, -1 };
 	    int [] rightFixes  = { -1, -1,  4,  5, -1,  6,  7, -1 };
+	    */
+
 
 	    Object ti;
-	    int i, j=0, s=maxInt+numNodes+1;
+	    int i;
 	    for(i=0;i<=maxInt;i++) {
 		atoms[i] = Integer.toString(i); 
 	    }
 	    for(i=0;i<numNodes;i++) {
 		nodes[i] = atoms[i];
-	    }
-	    for(i=numNodes;i<=numNodes*2;i++) {
-		leaves[i-numNodes] = atoms[i];
 	    }
 	    atoms[maxInt+1] = "RB"; 
 	    atoms[maxInt+2] = "Red"; 
@@ -600,8 +604,8 @@ public class RBTree<V>
 	    Black_upper.add(factory.tuple("Black"));
 	    bounds.boundExactly(Black, Black_upper);
 	    
-	    TupleSet Leaf_upper = factory.noneOf(1);
 	    TupleSet Node_upper = factory.noneOf(1);
+	    TupleSet Keys_upper = factory.noneOf(1);
 	    TupleSet Root_upper = factory.noneOf(2);
 	    TupleSet Color_upper = factory.noneOf(2);
 	    TupleSet Parent_upper = factory.noneOf(2);
@@ -609,14 +613,13 @@ public class RBTree<V>
 	    TupleSet Left_upper = factory.noneOf(2);
 	    TupleSet Right_upper = factory.noneOf(2);
 	    for(i=0;i<numNodes;i++) {
-		Object l = leaves[i], n = nodes[i];
-		Leaf_upper.add(factory.tuple(l));
+		Object n = nodes[i];
 		Node_upper.add(factory.tuple(n));
+		Keys_upper.add(factory.tuple(atoms[keys[i]]));
 		Root_upper.add(factory.tuple("RB").product(factory.tuple(n)));
-		Color_upper.add(factory.tuple(l).product(factory.tuple("Red")));
-		Color_upper.add(factory.tuple(l).product(factory.tuple("Black")));
 		Color_upper.add(factory.tuple(n).product(factory.tuple("Red")));
 		Color_upper.add(factory.tuple(n).product(factory.tuple("Black")));
+		/*
 		if (parentFixes[i] != -1) {
 		    Parent_upper.add(factory.tuple(n).product(factory.tuple(nodes[parentFixes[i]])));
 		}
@@ -626,28 +629,19 @@ public class RBTree<V>
 		if (rightFixes[i] != -1) {
 		    Right_upper.add(factory.tuple(n).product(factory.tuple(nodes[rightFixes[i]])));
 		}
-		for(j=0;j<numNodes;j++) {
-		    Object l2 = leaves[j], n2 = nodes[j];		    
-		    Parent_upper.add(factory.tuple(l).product(factory.tuple(n2)));
-		    if (parentFixes[i] == -1) {
+		*/
+		for(int j=0;j<numNodes;j++) {
+		    Object n2 = nodes[j];		    
+		    //if (parentFixes[i] == -1) {
 			Parent_upper.add(factory.tuple(n).product(factory.tuple(n2)));
-		    }
-		    if (leftFixes[i] == -1) {
-			Left_upper.add(factory.tuple(n).product(factory.tuple(l2)));
+			//}
+			//if (leftFixes[i] == -1) {
 			Left_upper.add(factory.tuple(n).product(factory.tuple(n2)));
-		    }
-		    if (rightFixes[i] == -1) {
-			Right_upper.add(factory.tuple(n).product(factory.tuple(l2)));
+			//}
+			//if (rightFixes[i] == -1) {
 			Right_upper.add(factory.tuple(n).product(factory.tuple(n2)));
-		    }
+			//}
 
-		}
-		Object l2 = leaves[j];
-		if (leftFixes[i] == -1) {
-		    Left_upper.add(factory.tuple(n).product(factory.tuple(l2)));
-		}
-		if (rightFixes[i] == -1) {
-		    Right_upper.add(factory.tuple(n).product(factory.tuple(l2)));
 		}
 		/*
 		for(j=0;j<numNodes;j++) {
@@ -656,15 +650,8 @@ public class RBTree<V>
 		*/
 		Value_upper.add(factory.tuple(n).product(factory.tuple(atoms[keys[i]])));
 	    }
-	    String l = leaves[i];
-	    Leaf_upper.add(factory.tuple(l));
-	    Color_upper.add(factory.tuple(l).product(factory.tuple("Red")));
-	    Color_upper.add(factory.tuple(l).product(factory.tuple("Black")));
-	    for(j=0;j<numNodes;j++) {
-		Parent_upper.add(factory.tuple(l).product(factory.tuple(nodes[j])));
-	    }
-	    bounds.boundExactly(Leaf, Leaf_upper);
 	    bounds.boundExactly(Node, Node_upper);
+	    bounds.boundExactly(Keys, Keys_upper);
 	    bounds.bound(Root, Root_upper);
 	    bounds.bound(RelColor, Color_upper);
 	    bounds.bound(Parent, Parent_upper);
@@ -673,197 +660,238 @@ public class RBTree<V>
 	    bounds.bound(Left, Left_upper);
 	    bounds.bound(Right, Right_upper);
 
-	    Expression x19=Red.intersection(Black);
-	    Formula x18=x19.no();
-	    Expression x21=Leaf.intersection(Node);
-	    Formula x20=x21.no();
-	    Variable x24=Variable.unary("this");
-	    Decls x23=x24.oneOf(RB);
-	    Expression x27=x24.join(Root);
-	    Formula x26=x27.one();
-	    Formula x28=x27.in(Node);
-	    Formula x25=x26.and(x28);
-	    Formula x22=x25.forAll(x23);
-	    Expression x30=Root.join(Expression.UNIV);
-	    Formula x29=x30.in(RB);
-	    Variable x34=Variable.unary("this");
-	    Decls x33=x34.oneOf(Node);
-	    Expression x37=x34.join(Value);
-	    Formula x36=x37.one();
-	    Formula x38=x37.in(Expression.INTS);
-	    Formula x35=x36.and(x38);
-	    Formula x32=x35.forAll(x33);
-	    Expression x41=Value.join(Expression.UNIV);
-	    Formula x40=x41.in(Node);
-	    Variable x44=Variable.unary("this");
-	    Decls x43=x44.oneOf(Node);
-	    Expression x47=x44.join(Left);
-	    Formula x46=x47.one();
-	    Expression xGNode=Leaf.union(Node);
-	    Formula x48=x47.in(xGNode);
-	    Formula x45=x46.and(x48);
-	    Formula x42=x45.forAll(x43);
-	    Expression x51=Left.join(Expression.UNIV);
-	    Formula x50=x51.in(Node);
-	    Variable x54=Variable.unary("this");
-	    Decls x53=x54.oneOf(Node);
-	    Expression x57=x54.join(Right);
-	    Formula x56=x57.one();
-	    Formula x58=x57.in(xGNode);
-	    Formula x55=x56.and(x58);
-	    Formula x52=x55.forAll(x53);
-	    Expression x60=Right.join(Expression.UNIV);
-	    Formula x59=x60.in(Node);
-	    Expression x62=Left.intersection(Right);
-	    Formula x61=x62.no();
-	    Variable x65=Variable.unary("this");
-	    Decls x64=x65.oneOf(xGNode);
-	    Expression x68=x65.join(RelColor);
-	    Formula x67=x68.one();
-	    Expression xColor=Red.union(Black);
-	    Formula x69=x68.in(xColor);
-	    Formula x66=x67.and(x69);
-	    Formula x63=x66.forAll(x64);
-	    Expression x72=RelColor.join(Expression.UNIV);
-	    Formula x71=x72.in(xGNode);
-	    Variable x75=Variable.unary("this");
-	    Decls x74=x75.oneOf(xGNode);
-	    Expression x78=x75.join(Parent);
-	    Formula x77=x78.lone();
-	    Formula x79=x78.in(Node);
-	    Formula x76=x77.and(x79);
-	    Formula x73=x76.forAll(x74);
-	    Expression x81=Parent.join(Expression.UNIV);
-	    Formula x80=x81.in(xGNode);
-	    Expression x84=RB.join(Root);
-	    Expression x83=x84.join(Parent);
-	    Formula x82=x83.no();
-	    Variable x87=Variable.unary("n");
-	    Decls x86=x87.oneOf(Node);
-	    Expression x92=Left.union(Right);
-	    Expression x91=x92.closure();
-	    Expression x90=x87.join(x91);
-	    Formula x89=x87.in(x90);
-	    Formula x88=x89.not();
-	    Formula x85=x88.forAll(x86);
-	    Variable x95=Variable.unary("n");
-	    Decls x94=x95.oneOf(Node);
-	    Variable x99=Variable.unary("p");
-	    Decls x98=x99.oneOf(Node);
-	    Expression x102=Left.union(Right);
-	    Expression x101=x99.join(x102);
-	    Formula x100=x101.eq(x95);
-	    Expression x97=x100.comprehension(x98);
-	    Formula x96=x97.lone();
-	    Formula x93=x96.forAll(x94);
-	    Variable x106=Variable.unary("n1");
-	    Decls x105=x106.oneOf(xGNode);
-	    Variable x108=Variable.unary("n2");
-	    Decls x107=x108.oneOf(Node);
-	    Decls x104=x105.and(x107);
-	    Expression x112=x108.join(Left);
-	    Formula x111=x112.eq(x106);
-	    Expression x114=x108.join(Right);
-	    Formula x113=x114.eq(x106);
-	    Formula x110=x111.or(x113);
-	    Expression x116=x106.join(Parent);
-	    Formula x115=x116.eq(x108);
-	    Formula x109=x110.iff(x115);
-	    Formula x103=x109.forAll(x104);
-	    Expression x119=Node.join(Value);
-	    IntExpression x118=x119.count();
-	    IntExpression x120=Node.count();
-	    Formula x117=x118.eq(x120);
-	    Variable x124=Variable.unary("n");
-	    Decls x123=x124.oneOf(Node);
-	    Variable x126=Variable.unary("c");
-	    Expression x128=x124.join(Left);
-	    Expression x131=Left.union(Right);
-	    Expression x130=x131.closure();
-	    Expression x138=Expression.INTS;
-	    Expression x137=x138.union(RB);
-	    Expression x136=x137.union(xColor);
-	    Expression x135=x136.union(xGNode);
-	    Expression x134=x135.product(Expression.UNIV);
-	    Expression x132=Expression.IDEN.intersection(x134);
-	    Expression x129=x130.union(x132);
-	    Expression x127=x128.join(x129);
-	    Decls x125=x126.oneOf(x127);
-	    Decls x122=x123.and(x125);
-	    Formula x141=x126.in(Node);
-	    Formula x140=x141.not();
-	    Expression x144=x126.join(Value);
-	    IntExpression x143=x144.sum();
-	    Expression x146=x124.join(Value);
-	    IntExpression x145=x146.sum();
-	    Formula x142=x143.lt(x145);
-	    Formula x139=x140.or(x142);
-	    Formula x121=x139.forAll(x122);
-	    Variable x150=Variable.unary("n");
-	    Decls x149=x150.oneOf(Node);
-	    Variable x152=Variable.unary("c");
-	    Expression x154=x150.join(Right);
-	    Expression x157=Left.union(Right);
-	    Expression x156=x157.closure();
-	    Expression x159=x135.product(Expression.UNIV);
-	    Expression x158=Expression.IDEN.intersection(x159);
-	    Expression x155=x156.union(x158);
-	    Expression x153=x154.join(x155);
-	    Decls x151=x152.oneOf(x153);
-	    Decls x148=x149.and(x151);
-	    Formula x162=x152.in(Node);
+	    Expression x18=Red.intersection(Black);
+	    Formula x17=x18.no();
+	    Variable x21=Variable.unary("this");
+	    Decls x20=x21.oneOf(RB);
+	    Expression x24=x21.join(Root);
+	    Formula x23=x24.one();
+	    Formula x25=x24.in(Node);
+	    Formula x22=x23.and(x25);
+	    Formula x19=x22.forAll(x20);
+	    Expression x27=Root.join(Expression.UNIV);
+	    Formula x26=x27.in(RB);
+	    Variable x31=Variable.unary("this");
+	    Decls x30=x31.oneOf(Node);
+	    Expression x34=x31.join(RelColor);
+	    Formula x33=x34.one();
+	    Expression x36=Red.union(Black);
+	    Formula x35=x34.in(x36);
+	    Formula x32=x33.and(x35);
+	    Formula x29=x32.forAll(x30);
+	    Expression x38=RelColor.join(Expression.UNIV);
+	    Formula x37=x38.in(Node);
+	    Variable x41=Variable.unary("this");
+	    Decls x40=x41.oneOf(Node);
+	    Expression x44=x41.join(Value);
+	    Formula x43=x44.one();
+	    Formula x45=x44.in(Expression.INTS);
+	    Formula x42=x43.and(x45);
+	    Formula x39=x42.forAll(x40);
+	    Expression x48=Value.join(Expression.UNIV);
+	    Formula x47=x48.in(Node);
+	    Variable x51=Variable.unary("this");
+	    Decls x50=x51.oneOf(Node);
+	    Expression x54=x51.join(Parent);
+	    Formula x53=x54.lone();
+	    Formula x55=x54.in(Node);
+	    Formula x52=x53.and(x55);
+	    Formula x49=x52.forAll(x50);
+	    Expression x57=Parent.join(Expression.UNIV);
+	    Formula x56=x57.in(Node);
+	    Variable x60=Variable.unary("this");
+	    Decls x59=x60.oneOf(Node);
+	    Expression x63=x60.join(Left);
+	    Formula x62=x63.lone();
+	    Formula x64=x63.in(Node);
+	    Formula x61=x62.and(x64);
+	    Formula x58=x61.forAll(x59);
+	    Expression x66=Left.join(Expression.UNIV);
+	    Formula x65=x66.in(Node);
+	    Variable x69=Variable.unary("this");
+	    Decls x68=x69.oneOf(Node);
+	    Expression x72=x69.join(Right);
+	    Formula x71=x72.lone();
+	    Formula x73=x72.in(Node);
+	    Formula x70=x71.and(x73);
+	    Formula x67=x70.forAll(x68);
+	    Expression x75=Right.join(Expression.UNIV);
+	    Formula x74=x75.in(Node);
+	    Expression x78=RB.join(Root);
+	    Expression x77=x78.join(Parent);
+	    Formula x76=x77.no();
+	    Variable x81=Variable.unary("n");
+	    Decls x80=x81.oneOf(Node);
+	    Expression x86=Left.union(Right);
+	    Expression x85=x86.closure();
+	    Expression x84=x81.join(x85);
+	    Formula x83=x81.in(x84);
+	    Formula x82=x83.not();
+	    Formula x79=x82.forAll(x80);
+	    Variable x89=Variable.unary("n");
+	    Decls x88=x89.oneOf(Node);
+	    Variable x93=Variable.unary("p");
+	    Decls x92=x93.oneOf(Node);
+	    Expression x96=Left.union(Right);
+	    Expression x95=x93.join(x96);
+	    Formula x94=x95.eq(x89);
+	    Expression x91=x94.comprehension(x92);
+	    Formula x90=x91.lone();
+	    Formula x87=x90.forAll(x88);
+	    Variable x100=Variable.unary("n1");
+	    Decls x99=x100.oneOf(Node);
+	    Variable x102=Variable.unary("n2");
+	    Decls x101=x102.oneOf(Node);
+	    Decls x98=x99.and(x101);
+	    Expression x106=Left.union(Right);
+	    Expression x105=x102.join(x106);
+	    Formula x104=x100.in(x105);
+	    Expression x108=x100.join(Parent);
+	    Formula x107=x108.eq(x102);
+	    Formula x103=x104.iff(x107);
+	    Formula x97=x103.forAll(x98);
+	    Expression x111=Node.join(Value);
+	    IntExpression x110=x111.count();
+	    IntExpression x112=Node.count();
+	    Formula x109=x110.eq(x112);
+	    Variable x116=Variable.unary("n");
+	    Decls x115=x116.oneOf(Node);
+	    Variable x118=Variable.unary("c");
+	    Expression x120=x116.join(Left);
+	    Expression x123=Left.union(Right);
+	    Expression x122=x123.closure();
+	    Expression x130=Expression.INTS;
+	    Expression x129=x130.union(RB);
+	    Expression x128=x129.union(x36);
+	    Expression x127=x128.union(Node);
+	    Expression x126=x127.product(Expression.UNIV);
+	    Expression x124=Expression.IDEN.intersection(x126);
+	    Expression x121=x122.union(x124);
+	    Expression x119=x120.join(x121);
+	    Decls x117=x118.oneOf(x119);
+	    Decls x114=x115.and(x117);
+	    Expression x133=x118.join(Value);
+	    IntExpression x132=x133.sum();
+	    Expression x135=x116.join(Value);
+	    IntExpression x134=x135.sum();
+	    Formula x131=x132.lt(x134);
+	    Formula x113=x131.forAll(x114);
+	    Variable x139=Variable.unary("n");
+	    Decls x138=x139.oneOf(Node);
+	    Variable x141=Variable.unary("c");
+	    Expression x143=x139.join(Right);
+	    Expression x146=Left.union(Right);
+	    Expression x145=x146.closure();
+	    Expression x148=x127.product(Expression.UNIV);
+	    Expression x147=Expression.IDEN.intersection(x148);
+	    Expression x144=x145.union(x147);
+	    Expression x142=x143.join(x144);
+	    Decls x140=x141.oneOf(x142);
+	    Decls x137=x138.and(x140);
+	    Expression x151=x141.join(Value);
+	    IntExpression x150=x151.sum();
+	    Expression x153=x139.join(Value);
+	    IntExpression x152=x153.sum();
+	    Formula x149=x150.gt(x152);
+	    Formula x136=x149.forAll(x137);
+	    Expression x156=RB.join(Root);
+	    Expression x155=x156.join(RelColor);
+	    Formula x154=x155.eq(Black);
+	    Variable x159=Variable.unary("n");
+	    Decls x158=x159.oneOf(Node);
+	    Expression x163=x159.join(RelColor);
+	    Formula x162=x163.eq(Red);
 	    Formula x161=x162.not();
-	    Expression x165=x152.join(Value);
-	    IntExpression x164=x165.sum();
-	    Expression x167=x150.join(Value);
-	    IntExpression x166=x167.sum();
-	    Formula x163=x164.gt(x166);
-	    Formula x160=x161.or(x163);
-	    Formula x147=x160.forAll(x148);
-	    Expression x170=RB.join(Root);
-	    Expression x169=x170.join(RelColor);
-	    Formula x168=x169.eq(Black);
-	    Expression x172=Leaf.join(RelColor);
-	    Formula x171=x172.eq(Black);
-	    Variable x175=Variable.unary("n");
-	    Decls x174=x175.oneOf(Node);
-	    Expression x179=x175.join(RelColor);
-	    Formula x178=x179.eq(Red);
-	    Formula x177=x178.not();
-	    Expression x183=Left.union(Right);
-	    Expression x182=x175.join(x183);
-	    Expression x181=x182.join(RelColor);
-	    Formula x180=x181.eq(Black);
-	    Formula x176=x177.or(x180);
-	    Formula x173=x176.forAll(x174);
-	    Variable x187=Variable.unary("l1");
-	    Decls x186=x187.oneOf(Leaf);
-	    Variable x189=Variable.unary("l2");
-	    Decls x188=x189.oneOf(Leaf);
-	    Decls x185=x186.and(x188);
-	    Expression x193=x187.intersection(x189);
-	    Formula x192=x193.no();
-	    Formula x191=x192.not();
-	    Variable x198=Variable.unary("n");
-	    Expression x200=Parent.closure();
-	    Expression x199=x187.join(x200);
-	    Decls x197=x198.oneOf(x199);
-	    Expression x202=x198.join(RelColor);
-	    Formula x201=x202.eq(Black);
-	    Expression x196=x201.comprehension(x197);
-	    IntExpression x195=x196.count();
+	    Expression x168=x159.join(Left);
+	    Formula x167=x168.some();
+	    Formula x166=x167.not();
+	    Expression x171=x159.join(Left);
+	    Expression x170=x171.join(RelColor);
+	    Formula x169=x170.eq(Black);
+	    Formula x165=x166.or(x169);
+	    Expression x175=x159.join(Right);
+	    Formula x174=x175.some();
+	    Formula x173=x174.not();
+	    Expression x178=x159.join(Right);
+	    Expression x177=x178.join(RelColor);
+	    Formula x176=x177.eq(Black);
+	    Formula x172=x173.or(x176);
+	    Formula x164=x165.and(x172);
+	    Formula x160=x161.or(x164);
+	    Formula x157=x160.forAll(x158);
+	    Variable x182=Variable.unary("l1");
+	    Decls x181=x182.oneOf(Node);
+	    Variable x184=Variable.unary("l2");
+	    Decls x183=x184.oneOf(Node);
+	    Decls x180=x181.and(x183);
+	    Expression x188=x182.intersection(x184);
+	    Formula x187=x188.no();
+	    Formula x186=x187.not();
+	    Expression x194=x182.join(Left);
+	    Formula x193=x194.no();
+	    Expression x196=x182.join(Right);
+	    Formula x195=x196.no();
+	    Formula x192=x193.or(x195);
+	    Expression x199=x184.join(Left);
+	    Formula x198=x199.no();
+	    Expression x201=x184.join(Right);
+	    Formula x200=x201.no();
+	    Formula x197=x198.or(x200);
+	    Formula x191=x192.and(x197);
+	    Formula x190=x191.not();
 	    Variable x206=Variable.unary("n");
-	    Expression x208=Parent.closure();
-	    Expression x207=x189.join(x208);
+	    Expression x209=Parent.closure();
+	    Expression x211=x127.product(Expression.UNIV);
+	    Expression x210=Expression.IDEN.intersection(x211);
+	    Expression x208=x209.union(x210);
+	    Expression x207=x182.join(x208);
 	    Decls x205=x206.oneOf(x207);
-	    Expression x210=x206.join(RelColor);
-	    Formula x209=x210.eq(Black);
-	    Expression x204=x209.comprehension(x205);
+	    Expression x213=x206.join(RelColor);
+	    Formula x212=x213.eq(Black);
+	    Expression x204=x212.comprehension(x205);
 	    IntExpression x203=x204.count();
-	    Formula x194=x195.eq(x203);
-	    Formula x190=x191.or(x194);
-	    Formula x184=x190.forAll(x185);
-	    Formula x17=Formula.compose(FormulaOperator.AND, x18, x20, x22, x29, x32, x40, x42, x50, x52, x59, x61, x63, x71, x73, x80, x82, x85, x93, x103, x117, x121, x147, x168, x171, x173, x184);
+	    Variable x217=Variable.unary("n");
+	    Expression x220=Parent.closure();
+	    Expression x222=x127.product(Expression.UNIV);
+	    Expression x221=Expression.IDEN.intersection(x222);
+	    Expression x219=x220.union(x221);
+	    Expression x218=x184.join(x219);
+	    Decls x216=x217.oneOf(x218);
+	    Expression x224=x217.join(RelColor);
+	    Formula x223=x224.eq(Black);
+	    Expression x215=x223.comprehension(x216);
+	    IntExpression x214=x215.count();
+	    Formula x202=x203.eq(x214);
+	    Formula x189=x190.or(x202);
+	    Formula x185=x186.or(x189);
+	    Formula x179=x185.forAll(x180);
+
+	    IntExpression x227=IntConstant.constant(0);
+	    Expression x226=x227.toExpression();
+	    Expression x230=RB.join(Root);
+	    Expression x233=Left.union(Right);
+	    Expression x232=x233.closure();
+	    Expression x235=x127.product(Expression.UNIV);
+	    Expression x234=Expression.IDEN.intersection(x235);
+	    Expression x231=x232.union(x234);
+	    Expression x229=x230.join(x231);
+	    Expression x228=x229.join(Value);
+	    Formula x225=x226.in(x228);
+
+	    Formula fVals = x228.eq(Keys);
+
+	    Formula x319=RB.eq(RB);
+	    Formula x320=Red.eq(Red);
+	    Formula x321=Black.eq(Black);
+	    Formula x322=Node.eq(Node);
+	    Formula x323=Root.eq(Root);
+	    Formula x324=RelColor.eq(RelColor);
+	    Formula x325=Value.eq(Value);
+	    Formula x326=Parent.eq(Parent);
+	    Formula x327=Left.eq(Left);
+	    Formula x328=Right.eq(Right);
+	    Formula x16=Formula.compose(FormulaOperator.AND, x17, x19, x26, x29, x37, x39, x47, x49, x56, x58, x65, x67, x74, x76, x79, x87, x97, x109, x113, x136, x154, x157, x179, x319, x320, x321, x322, x323, x324, x325, x326, x327, x328, fVals);
+	    
 	    
 	    Solver solver = new Solver();
 	    solver.options().setSolver(SATFactory.MiniSat);
@@ -874,7 +902,7 @@ public class RBTree<V>
 	    solver.options().setSkolemDepth(0);
 	    System.out.println("Solving...");
 	    System.out.flush();
-	    Solution sol = solver.solve(x17,bounds);
+	    Solution sol = solver.solve(x16,bounds);
 	    System.out.println(sol.toString());
 	    
 	    // extract solution
@@ -885,13 +913,16 @@ public class RBTree<V>
 	    Iterator<Tuple> rightRel = sol.instance().tuples(Right).iterator();
 	    solRootNodeIdx = Integer.parseInt((String)rootRel.next().atom(1));
 	    for (i=0;i<numNodes;i++) {
-		int tmp;
 		solNodeColors[i] = ((String)colorRel.next().atom(1)) == "Black" ? Color.BLACK : Color.RED;
 		solNodeKeys[i] = Integer.parseInt((String)valueRel.next().atom(1));
-		tmp = Integer.parseInt((String)leftRel.next().atom(1));
-		solNodeLefts[i] = tmp < numNodes ? tmp : -1;
-		tmp = Integer.parseInt((String)rightRel.next().atom(1));
-		solNodeRights[i] = tmp < numNodes ? tmp : -1;
+	    }
+	    while (leftRel.hasNext()) {
+		Tuple item = leftRel.next();
+		solNodeLefts[Integer.parseInt((String)item.atom(0))] = Integer.parseInt((String)item.atom(1));
+	    }
+	    while (rightRel.hasNext()) {
+		Tuple item = rightRel.next();
+		solNodeRights[Integer.parseInt((String)item.atom(0))] = Integer.parseInt((String)item.atom(1));
 	    }
 
 	    // wait for others 
@@ -911,7 +942,7 @@ public class RBTree<V>
         RBTree<Integer> t = new RBTree<Integer>();
         t.print();
 
-	int [] a = {0,8,2,6,4,9,12,13}; //,1,10,14,7};
+	int [] a = {0,8,2,6,4,9,12,13}; //1,10,14,7};
 	for (int i=0; i < a.length; i++) {
 	    t.insert(a[i],null);
 	    t.print();

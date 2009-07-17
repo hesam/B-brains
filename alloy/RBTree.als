@@ -19,6 +19,7 @@ fact { no n: Node | n in n.^(left+right) }
 fact { all n: Node | lone p: Node | p.(left+right) = n }
 fact { all n1, n2: Node | n1 in n2.(left+right) <=> n1.parent = n2 }
 fact { #(Node.value) = #(Node) }
+ 
 fact { all n: Node, c: n.left.*(left+right) | c.value < n.value }
 fact { all n: Node, c: n.right.*(left+right) | c.value > n.value }
 // RB Tree 
