@@ -506,7 +506,7 @@ public class RBTree<V>
 	    solNodeLefts[i] = -1;
 	    solNodeRights[i] = -1;
 	}
-	int maxInt = Math.max(maxVal,19);
+	int maxInt = Math.max(maxVal,29);
 
 	
 
@@ -581,6 +581,8 @@ public class RBTree<V>
 	    atoms[maxInt+2] = "Red"; 
 	    atoms[maxInt+3] = "Black"; 
 	    println(atoms);
+	    System.out.println(numNodes);
+	    System.out.println(maxInt);
 	    List<String> atomlist = Arrays.asList(atoms);
 
 	    Universe universe = new Universe(atomlist);
@@ -866,8 +868,6 @@ public class RBTree<V>
 	    Formula x185=x186.or(x189);
 	    Formula x179=x185.forAll(x180);
 
-	    IntExpression x227=IntConstant.constant(0);
-	    Expression x226=x227.toExpression();
 	    Expression x230=RB.join(Root);
 	    Expression x233=Left.union(Right);
 	    Expression x232=x233.closure();
@@ -876,7 +876,6 @@ public class RBTree<V>
 	    Expression x231=x232.union(x234);
 	    Expression x229=x230.join(x231);
 	    Expression x228=x229.join(Value);
-	    Formula x225=x226.in(x228);
 
 	    Formula fVals = x228.eq(Keys);
 
@@ -942,7 +941,7 @@ public class RBTree<V>
         RBTree<Integer> t = new RBTree<Integer>();
         t.print();
 
-	int [] a = {0,8,2,6,4,9,12,13}; //1,10,14,7};
+	int [] a = {23,8,0,1,2,4,9,16,17,5,22,13}; //20,21,19,11,24,10,18,6,14,7,15,3,24};
 	for (int i=0; i < a.length; i++) {
 	    t.insert(a[i],null);
 	    t.print();
