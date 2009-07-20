@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Random;
 
 
 class Node<V>
@@ -161,7 +162,7 @@ public class BSTree<V>
         Node<V> insertedNode = new Node<V>(key, value, null, null);
 	nodes.add(insertedNode);
 	try {
-	    if (key == 13) { int i = 1/0;  } /* FIXME - THROW EXCEPTION HERE */
+	    if (nodes.size() == 50) { int i = 1/0;  } /* FIXME - THROW EXCEPTION HERE */
 	    if (root == null) {
 		root = insertedNode;
 	    } else {
@@ -209,7 +210,7 @@ public class BSTree<V>
 	    solNodeLefts[i] = -1;
 	    solNodeRights[i] = -1;
 	}
-	maxInt = Math.max(maxVal,29);
+	maxInt = Math.max(maxVal,99);
 	intBitWidth = 1+(int)Math.ceil((double)Math.log(maxInt+1)/(double)Math.log(2));
 
 	return(relations);
@@ -628,14 +629,31 @@ public class BSTree<V>
     }
     
     public static void main(String[] args) {
+	int size = 50;
+	Random rand = new Random(1111L);
+
         BSTree<Integer> t = new BSTree<Integer>();
         t.print();
 
-	int [] a = {23,8,0,1,2,4,9,16,17,5,22,20,21,19,11,24,10,18,6,14,7,15,3,25,13};
-	for (int i=0; i < a.length; i++) {
-	    t.insert(a[i],null);
+	//int [] a = {23,8,0,1,2,4,9,16,17,5,22,20,21,19,11,24,10,18,6,14,7,15,3,25,13};
+
+	// create an array of the given size
+	int[] a = new int[size];
+	  	
+	for (int i = 0 ; i < size; ++i) {
+	    a[i] = i;// * 5;
+	}
+
+	// randomly shuffle the elements in the array and 
+	// insert them in the tree	
+	for (int i = size; i >0; --i) {
+	    int n = rand.nextInt(i);
+	    int temp = a[n];
+	    a[n] = a[i-1];
+	    t.insert(temp,null);
 	    t.print();
 	}
+
     }
 
 }
