@@ -91,11 +91,15 @@ public class RBTree<V>
 
     public Node<V> root;
     
-    List<Integer> nodes;
+    static List<Node<?>> nodes;
 
     final CyclicBarrier barrier;    
 
     // solver related
+    private static int TEST_METHOD = 0;
+    private static int MAX_SIZE;
+    private static int maxInt;
+    private static int intBitWidth;
     private boolean waitingForSolver;
     private static int solRootNodeIdx;
     private static int [] solNodeKeys;
@@ -106,7 +110,7 @@ public class RBTree<V>
     // Constructor
     public RBTree() {
         root = null;
-	nodes = new ArrayList<Integer>();
+	nodes = new ArrayList<Node<?>>();
         verifyProperties();
 
 	// init solver thread
@@ -235,44 +239,60 @@ public class RBTree<V>
         }
     }
 
+    public Node<V> getNewNodeParent(Integer key) {
+	return getNewNodeParent(key, null, null);
+    }
+    
+    public Node<V> getNewNodeParent(Integer key, V value, Node<V> insertedNode) {
+	
+	Node<V> n = root;
+	while (true) {
+	    int compResult = key.compareTo(n.key);
+	    if (compResult == 0) {
+		if (insertedNode != null) {
+		    n.value = value;
+		}
+		return n;
+	    } else if (compResult < 0) {
+		if (n.left == null) {
+		    if (insertedNode != null) {
+			n.left = insertedNode;
+		    }
+		    break;
+		} else {
+		    n = n.left;
+		}
+	    } else {
+		assert compResult > 0;
+		if (n.right == null) {
+		    if (insertedNode != null) {
+			n.right = insertedNode;
+		    }
+		    break;
+		} else {
+		    n = n.right;
+		}
+	    }
+	}
+	return n;
+    }
+
     public void insert(Integer key, V value) {
         Node<V> insertedNode = new Node<V>(key, value, Color.RED, null, null);
-	nodes.add(key);
+	nodes.add(insertedNode);
 	try {
-	    if (key == 13) { int i = 1/0; /* FIXME - THROW EXCEPTION HERE */ }
+	    if (TEST_METHOD == 0 && nodes.size() == MAX_SIZE) { int i = 1/0; /* FIXME - THROW EXCEPTION HERE */ }
 	    if (root == null) {
 		root = insertedNode;
 	    } else {
-		Node<V> n = root;
-		while (true) {
-		    int compResult = key.compareTo(n.key);
-		    if (compResult == 0) {
-			n.value = value;
-			return;
-		    } else if (compResult < 0) {
-			if (n.left == null) {
-			    n.left = insertedNode;
-			    break;
-			} else {
-			    n = n.left;
-			}
-		    } else {
-			assert compResult > 0;
-			if (n.right == null) {
-			    n.right = insertedNode;
-			    break;
-			} else {
-			    n = n.right;
-			}
-		    }
-		}
-		
+		Node<V> n = getNewNodeParent(key, value, insertedNode);		
 		insertedNode.parent = n;
 	    }
 	    insertCase1(insertedNode);
 	    verifyProperties();
 	} catch (Throwable rte) {
-	    callSolver(rte);
+	    int[][] boundFixes = insert_bounds(insertedNode);
+	    callSolver(rte, boundFixes);
 	} 
     }
 
@@ -342,7 +362,7 @@ public class RBTree<V>
             deleteCase1(n);
         }
         replaceNode(n, child);
-	nodes.remove(key);
+	nodes.remove(n);
         verifyProperties();
     }
 
@@ -483,14 +503,9 @@ public class RBTree<V>
 	
     }
 
-    
-    public void callSolver(Throwable rte) {
+    public void initSolverProblem() {
 
-	System.out.println("!! " + rte + "... start solver fallback!");
-
-	waitingForSolver = true;
 	int numNodes = nodes.size();
-	int[] keys = new int[numNodes];
 	solNodeKeys = new int[numNodes];
 	solNodeColors = new Color[numNodes];
 	solNodeLefts = new int[numNodes];
@@ -498,48 +513,79 @@ public class RBTree<V>
 
 	int maxVal = 0;
 	for (int i = 0; i < numNodes; i++) {
-	    int val = nodes.get(i).intValue();
-	    keys[i] = val;
+	    int val = nodes.get(i).key; //.intValue();
 	    if (val > maxVal) {
 		maxVal = val;
 	    }
 	    solNodeLefts[i] = -1;
 	    solNodeRights[i] = -1;
 	}
-	int maxInt = Math.max(maxVal,29);
+	maxInt = Math.max(maxVal+1,MAX_SIZE);
+	intBitWidth = 1+(int)Math.ceil((double)Math.log(maxInt+1)/(double)Math.log(2));
 
+    }
+    // set bounds via insert method invariants including @modifies clause...
+    public int[][] insert_bounds(Node<?> node) {
+	    
+	initSolverProblem();
+	int numNodes = nodes.size();
 	
+	int [] nodeIdxs    = new int[maxInt];
+	int [] leftFixes   = new int[numNodes];
+	int [] rightFixes  = new int[numNodes];	
+	int [] parentFixes = new int[numNodes];	
+	int [] colorFixes = new int[numNodes];	
 
-	System.out.println("nodes: " + nodes);
+	for(int i=0;i<numNodes;i++) {
+	    int k = nodes.get(i).key;
+	    nodeIdxs[k] = i;
+	}
+	int key = node.key;
+	int p = getNewNodeParent(key).key;
+	System.out.println("new node will be a child of: " + p);
+
+	for(int i=0;i<numNodes;i++) {
+	    Node<?> nd = nodes.get(i);
+	    int k = nd.key; //intValue();
+	    leftFixes[i] = -1; 
+	    rightFixes[i] = -1; 
+	    parentFixes[i] = -1; 
+	    colorFixes[i] = -1; 
+	}	
+	System.out.println(numNodes);
+	System.out.println(maxInt);
+	intprintln(nodeIdxs);
+	intprintln(leftFixes);
+	intprintln(rightFixes);
+	intprintln(parentFixes);
+	intprintln(colorFixes);
 	
-	new SolverThread(barrier,keys,maxInt).start();
+	int[][] boundFixes = {leftFixes, rightFixes, parentFixes, colorFixes};
+	return(boundFixes);
+    }
+    
+    public void callSolver(Throwable rte, int[][] boundFixes) {
+
+	System.out.println("!! " + rte + "... start solver fallback!");
+
+	waitingForSolver = true;
+
+	//System.out.println("nodes: " + nodes);
+	
+	new SolverThread(barrier,boundFixes).start();
 
 	while(waitingForSolver); // wait until solution is here
     }
 
     private static class SolverThread extends Thread { 
 	CyclicBarrier barrier; 
-	int maxInt;
-	int[] keys;
+	int[][] boundFixes;
 	
-	SolverThread(CyclicBarrier barrier, int[] keys, int maxInt) { 
+	SolverThread(CyclicBarrier barrier,int[][] boundFixes) { 
 	    this.barrier = barrier;
-	    this.keys = keys;
-	    this.maxInt = maxInt;
+	    this.boundFixes = boundFixes;
 	} 
-
-	public void println(Object [] l){
-	    System.out.print("[");
-	    for(int i=0;i<l.length-1;i++) {
-		System.out.print(l[i]);
-		System.out.print(", ");
-	    }
-	    if(l.length > 0) {
-	    System.out.print(l[l.length-1]);
-	    }
-	    System.out.println("]");
-	}
-
+	
 	public void run() { 
 	    System.out.println("in thread..."); 
 
@@ -555,19 +601,15 @@ public class RBTree<V>
 	    Relation Left = Relation.nary("Node.left", 2);
 	    Relation Right = Relation.nary("Node.right", 2);
 
-	    int numNodes = keys.length;
-	    int intBitWidth = 1+(int)Math.ceil((double)Math.log(maxInt+1)/(double)Math.log(2));
+	    int numNodes = nodes.size();
+
 	    String[] atoms = new String[maxInt+4];
-	    String[] nodes = new String[numNodes];
+	    String[] nodeAtoms = new String[numNodes];
 
-	    //            idxs = {  0,  1,  2,  3,  4,  5,  6,  7  }
-	    //            keys = {  0,  8,  2,  6,  4,  9, 12, 13  }
-	    /*
-	    int [] parentFixes = {  2,  5,  3, -1,  2,  3,  5,  6 };
-	    int [] leftFixes   = { -1, -1,  0,  2, -1,  1, -1, -1 };
-	    int [] rightFixes  = { -1, -1,  4,  5, -1,  6,  7, -1 };
-	    */
-
+	    int [] leftFixes   = boundFixes[0];
+	    int [] rightFixes  = boundFixes[1];
+	    int [] parentFixes = boundFixes[2];
+	    int [] colorFixes = boundFixes[3];
 
 	    Object ti;
 	    int i;
@@ -575,14 +617,12 @@ public class RBTree<V>
 		atoms[i] = Integer.toString(i); 
 	    }
 	    for(i=0;i<numNodes;i++) {
-		nodes[i] = atoms[i];
+		nodeAtoms[i] = atoms[i];
 	    }
 	    atoms[maxInt+1] = "RB"; 
 	    atoms[maxInt+2] = "Red"; 
 	    atoms[maxInt+3] = "Black"; 
-	    println(atoms);
-	    System.out.println(numNodes);
-	    System.out.println(maxInt);
+
 	    List<String> atomlist = Arrays.asList(atoms);
 
 	    Universe universe = new Universe(atomlist);
@@ -596,19 +636,18 @@ public class RBTree<V>
 
 	    TupleSet RB_upper = factory.noneOf(1);
 	    RB_upper.add(factory.tuple("RB"));
-	    bounds.boundExactly(RB, RB_upper);
+
 	    
 	    TupleSet Red_upper = factory.noneOf(1);
 	    Red_upper.add(factory.tuple("Red"));
-	    bounds.boundExactly(Red, Red_upper);
 	    
 	    TupleSet Black_upper = factory.noneOf(1);
 	    Black_upper.add(factory.tuple("Black"));
-	    bounds.boundExactly(Black, Black_upper);
 	    
 	    TupleSet Node_upper = factory.noneOf(1);
 	    TupleSet Keys_upper = factory.noneOf(1);
 	    TupleSet Root_upper = factory.noneOf(2);
+	    TupleSet Color_lower = factory.noneOf(2);
 	    TupleSet Color_upper = factory.noneOf(2);
 	    TupleSet Parent_lower = factory.noneOf(2);
 	    TupleSet Parent_upper = factory.noneOf(2);
@@ -619,55 +658,55 @@ public class RBTree<V>
 	    TupleSet Right_upper = factory.noneOf(2);
 
 	    for(i=0;i<numNodes;i++) {
-		Object n = nodes[i];
+		Object n = nodeAtoms[i];
+		int k = nodes.get(i).key;
 		Node_upper.add(factory.tuple(n));
-		Keys_upper.add(factory.tuple(atoms[keys[i]]));
+		Keys_upper.add(factory.tuple(atoms[k]));
 		Root_upper.add(factory.tuple("RB").product(factory.tuple(n)));
-		Color_upper.add(factory.tuple(n).product(factory.tuple("Red")));
-		Color_upper.add(factory.tuple(n).product(factory.tuple("Black")));
-		/*
 		if (parentFixes[i] != -1) {
-		    Parent_lower.add(factory.tuple(n).product(factory.tuple(nodes[parentFixes[i]])));
-		    Parent_upper.add(factory.tuple(n).product(factory.tuple(nodes[parentFixes[i]])));
+		    Color_lower.add(factory.tuple(n).product(factory.tuple(colorFixes[i])));
+		    Color_upper.add(factory.tuple(n).product(factory.tuple(colorFixes[i])));
+		} else {
+		    Color_upper.add(factory.tuple(n).product(factory.tuple("Red")));
+		    Color_upper.add(factory.tuple(n).product(factory.tuple("Black")));
+		}
+		if (parentFixes[i] != -1) {
+		    Parent_lower.add(factory.tuple(n).product(factory.tuple(nodeAtoms[parentFixes[i]])));
+		    Parent_upper.add(factory.tuple(n).product(factory.tuple(nodeAtoms[parentFixes[i]])));
 		}
 		if (leftFixes[i] != -1) {
-		    Left_lower.add(factory.tuple(n).product(factory.tuple(nodes[leftFixes[i]])));
-		    Left_upper.add(factory.tuple(n).product(factory.tuple(nodes[leftFixes[i]])));
+		    Left_lower.add(factory.tuple(n).product(factory.tuple(nodeAtoms[leftFixes[i]])));
+		    Left_upper.add(factory.tuple(n).product(factory.tuple(nodeAtoms[leftFixes[i]])));
 		}
 		if (rightFixes[i] != -1) {
-		    Right_lower.add(factory.tuple(n).product(factory.tuple(nodes[rightFixes[i]])));
-		    Right_upper.add(factory.tuple(n).product(factory.tuple(nodes[rightFixes[i]])));
+		    Right_lower.add(factory.tuple(n).product(factory.tuple(nodeAtoms[rightFixes[i]])));
+		    Right_upper.add(factory.tuple(n).product(factory.tuple(nodeAtoms[rightFixes[i]])));
 		}
-		*/
 		for(int j=0;j<numNodes;j++) {
-		    Object n2 = nodes[j];		    
-		    //if (parentFixes[i] == -1) {
+		    Object n2 = nodeAtoms[j];		    
+		    if (parentFixes[i] == -1) {
 			Parent_upper.add(factory.tuple(n).product(factory.tuple(n2)));
-			//}
-			//if (leftFixes[i] == -1) {
+		    }
+		    if (leftFixes[i] == -1) {
 			Left_upper.add(factory.tuple(n).product(factory.tuple(n2)));
-			//}
-			//if (rightFixes[i] == -1) {
+		    }
+		    if (rightFixes[i] == -1) {
 			Right_upper.add(factory.tuple(n).product(factory.tuple(n2)));
-			//}
-
+		    }
 		}
-		/*
-		for(j=0;j<numNodes;j++) {
-		    Value_upper.add(factory.tuple(n).product(factory.tuple(atoms[keys[j]])));
-		}
-		*/
-		Value_upper.add(factory.tuple(n).product(factory.tuple(atoms[keys[i]])));
+		Value_upper.add(factory.tuple(n).product(factory.tuple(atoms[k])));
 	    }
+	    bounds.boundExactly(RB, RB_upper);
+	    bounds.boundExactly(Red, Red_upper);
+	    bounds.boundExactly(Black, Black_upper);
 	    bounds.boundExactly(Node, Node_upper);
 	    bounds.boundExactly(Keys, Keys_upper);
 	    bounds.bound(Root, Root_upper);
-	    bounds.bound(RelColor, Color_upper);
-	    bounds.bound(Parent, Parent_upper);
-	    //bounds.bound(Value, Value_upper);
 	    bounds.boundExactly(Value, Value_upper);
-	    bounds.bound(Left, Left_upper);
-	    bounds.bound(Right, Right_upper);
+	    bounds.bound(RelColor, Color_upper);
+	    bounds.bound(Parent, Parent_lower, Parent_upper);
+	    bounds.bound(Left, Left_lower, Left_upper);
+	    bounds.bound(Right, Right_lower, Right_upper);
 
 	    Expression x18=Red.intersection(Black);
 	    Formula x17=x18.no();
@@ -944,11 +983,38 @@ public class RBTree<V>
 	}
     }
 
+
+    public void println(Object [] l){
+	System.out.print("[");
+	for(int i=0;i<l.length-1;i++) {
+	    System.out.print(l[i]);
+	    System.out.print(", ");
+	}
+	if(l.length > 0) {
+	    System.out.print(l[l.length-1]);
+	}
+	System.out.println("]");
+    }
+    
+    public void intprintln(int [] l){
+	System.out.print("[");
+	for(int i=0;i<l.length-1;i++) {
+	    System.out.print(l[i]);
+	    System.out.print(", ");
+	}
+	if(l.length > 0) {
+	    System.out.print(l[l.length-1]);
+	}
+	System.out.println("]");
+    }
+    
     public static void main(String[] args) {
+	TEST_METHOD = 0;
+	MAX_SIZE = 8;
         RBTree<Integer> t = new RBTree<Integer>();
         t.print();
 
-	int [] a = {23,8,0,1,2,4,9,16,17,5,22,13}; //20,21,19,11,24,10,18,6,14,7,15,3,24};
+	int [] a = {10,6,3,13,18,16,17,15};
 	for (int i=0; i < a.length; i++) {
 	    t.insert(a[i],null);
 	    t.print();

@@ -41,6 +41,7 @@ public class BSTree<V>
     public static final boolean VERIFY_BSTREE = true;
     private static final int INDENT_STEP = 4;
 
+
     public Node<V> root;
     
     static List<Node<?>> nodes;
@@ -48,10 +49,11 @@ public class BSTree<V>
     final CyclicBarrier barrier;    
 
     // solver related
-    private boolean waitingForSolver;
+    private static int TEST_METHOD = 0;
+    private static int MAX_SIZE;
     private static int maxInt;
-    private static int maxSize;
     private static int intBitWidth;
+    private boolean waitingForSolver;
     private static int solRootNodeIdx;
     private static int [] solNodeKeys;
     private static int [] solNodeLefts;
@@ -193,7 +195,7 @@ public class BSTree<V>
         Node<V> insertedNode = new Node<V>(key, value, null, null);
 	nodes.add(insertedNode);
 	try {
-	    //if (nodes.size() == maxSize) { int i = 1/0;  } /* FIXME - THROW EXCEPTION HERE */
+	    if (TEST_METHOD == 0 && nodes.size() == MAX_SIZE) { int i = 1/0;  } /* FIXME - THROW EXCEPTION HERE */
 	    if (root == null) {
 		root = insertedNode;
 	    } else {
@@ -223,7 +225,7 @@ public class BSTree<V>
 	    solNodeLefts[i] = -1;
 	    solNodeRights[i] = -1;
 	}
-	maxInt = Math.max(maxVal,maxSize);
+	maxInt = Math.max(maxVal+1,MAX_SIZE);
 	intBitWidth = 1+(int)Math.ceil((double)Math.log(maxInt+1)/(double)Math.log(2));
 
     }
@@ -269,7 +271,7 @@ public class BSTree<V>
         Node<V> n = lookupNode(key);
 	nodes.remove(n);
 	try {
-	    if (true) { int i = 1/0;  } /* FIXME - THROW EXCEPTION HERE */
+	    if (TEST_METHOD == 1) { int i = 1/0;  } /* FIXME - THROW EXCEPTION HERE */
 	    if (n == null)
 		return;  // Key not found, do nothing
 	    if (n.left != null && n.right != null) {
@@ -462,7 +464,7 @@ public class BSTree<V>
 	    BS_upper.add(factory.tuple("BS"));
 	    for(i=0;i<numNodes;i++) {
 		Object n = nodeAtoms[i];
-		int k = nodes.get(i).key; //intValue();
+		int k = nodes.get(i).key;
 		Node_upper.add(factory.tuple(n));
 		Keys_upper.add(factory.tuple(atoms[k]));
 		Root_upper.add(factory.tuple("BS").product(factory.tuple(n)));
@@ -685,23 +687,23 @@ public class BSTree<V>
     }
     
     public static void main(String[] args) {
-	int size = 25;
-	maxSize = size;
+	TEST_METHOD = 0;
+	MAX_SIZE = 100;
 	Random rand = new Random(1111L);
 
         BSTree<Integer> t = new BSTree<Integer>();
         t.print();
 
 	// create an array of the given size
-	int[] a = new int[size];
+	int[] a = new int[MAX_SIZE];
 	  	
-	for (int i = 0 ; i < size; ++i) {
+	for (int i = 0 ; i < MAX_SIZE; ++i) {
 	    a[i] = i;// * 5;
 	}
 
 	// randomly shuffle the elements in the array and 
 	// insert them in the tree	
-	for (int i = size; i >0; --i) {
+	for (int i = MAX_SIZE; i >0; --i) {
 	    int n = rand.nextInt(i);
 	    int temp = a[n];
 	    a[n] = a[i-1];
@@ -710,8 +712,10 @@ public class BSTree<V>
 	}
 
 	// test delete
-	t.delete(10);
-	t.print();
+	if (TEST_METHOD == 1) {
+	    t.delete(10);
+	    t.print();
+	}
 
     }
 
