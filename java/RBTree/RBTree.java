@@ -610,10 +610,14 @@ public class RBTree<V>
 	    TupleSet Keys_upper = factory.noneOf(1);
 	    TupleSet Root_upper = factory.noneOf(2);
 	    TupleSet Color_upper = factory.noneOf(2);
+	    TupleSet Parent_lower = factory.noneOf(2);
 	    TupleSet Parent_upper = factory.noneOf(2);
 	    TupleSet Value_upper = factory.noneOf(2);
+	    TupleSet Left_lower = factory.noneOf(2);
 	    TupleSet Left_upper = factory.noneOf(2);
+	    TupleSet Right_lower = factory.noneOf(2);
 	    TupleSet Right_upper = factory.noneOf(2);
+
 	    for(i=0;i<numNodes;i++) {
 		Object n = nodes[i];
 		Node_upper.add(factory.tuple(n));
@@ -623,12 +627,15 @@ public class RBTree<V>
 		Color_upper.add(factory.tuple(n).product(factory.tuple("Black")));
 		/*
 		if (parentFixes[i] != -1) {
+		    Parent_lower.add(factory.tuple(n).product(factory.tuple(nodes[parentFixes[i]])));
 		    Parent_upper.add(factory.tuple(n).product(factory.tuple(nodes[parentFixes[i]])));
 		}
 		if (leftFixes[i] != -1) {
+		    Left_lower.add(factory.tuple(n).product(factory.tuple(nodes[leftFixes[i]])));
 		    Left_upper.add(factory.tuple(n).product(factory.tuple(nodes[leftFixes[i]])));
 		}
 		if (rightFixes[i] != -1) {
+		    Right_lower.add(factory.tuple(n).product(factory.tuple(nodes[rightFixes[i]])));
 		    Right_upper.add(factory.tuple(n).product(factory.tuple(nodes[rightFixes[i]])));
 		}
 		*/

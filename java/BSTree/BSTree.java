@@ -42,12 +42,14 @@ public class BSTree<V>
 
     public Node<V> root;
     
-    List<Integer> nodes;
+    static List<Node<?>> nodes;
 
     final CyclicBarrier barrier;    
 
     // solver related
     private boolean waitingForSolver;
+    private static int maxInt;
+    private static int intBitWidth;
     private static int solRootNodeIdx;
     private static int [] solNodeKeys;
     private static int [] solNodeLefts;
@@ -56,7 +58,7 @@ public class BSTree<V>
     // Constructor
     public BSTree() {
         root = null;
-	nodes = new ArrayList<Integer>();
+	nodes = new ArrayList<Node<?>>();
         verifyProperties();
 
 	// init solver thread
@@ -117,46 +119,224 @@ public class BSTree<V>
         }
     }
 
+    public Node<V> getParentForNewNode(Integer key) {
+	return getParentForNewNode(key, null, null);
+    }
+    
+    public Node<V> getParentForNewNode(Integer key, V value, Node<V> insertedNode) {
+
+	Node<V> n = root;
+	while (true) {
+	    int compResult = key.compareTo(n.key);
+	    if (compResult == 0) {
+		if (insertedNode != null) {
+		    n.value = value;
+		}
+		return n;
+	    } else if (compResult < 0) {
+		if (n.left == null) {
+		    if (insertedNode != null) {
+			n.left = insertedNode;
+		    }
+		    break;
+		} else {
+		    n = n.left;
+		}
+	    } else {
+		assert compResult > 0;
+		if (n.right == null) {
+		    if (insertedNode != null) {
+			n.right = insertedNode;
+		    }
+		    break;
+		} else {
+		    n = n.right;
+		}
+	    }
+	}
+	return n;
+    }
+
     public void insert(Integer key, V value) {
         Node<V> insertedNode = new Node<V>(key, value, null, null);
-	nodes.add(key);
+	nodes.add(insertedNode);
 	try {
 	    if (key == 13) { int i = 1/0;  } /* FIXME - THROW EXCEPTION HERE */
 	    if (root == null) {
 		root = insertedNode;
 	    } else {
-		Node<V> n = root;
-		while (true) {
-		    int compResult = key.compareTo(n.key);
-		    if (compResult == 0) {
-			n.value = value;
-			return;
-		    } else if (compResult < 0) {
-			if (n.left == null) {
-			    n.left = insertedNode;
-			    break;
-			} else {
-			    n = n.left;
-			}
-		    } else {
-			assert compResult > 0;
-			if (n.right == null) {
-			    n.right = insertedNode;
-			    break;
-			} else {
-			    n = n.right;
-			}
-		    }
-		}
-		
+		Node<V> n = getParentForNewNode(key, value, insertedNode);
 		insertedNode.parent = n;
 	    }
 	    verifyProperties();
 	} catch (Throwable rte) {
-	    callSolver(rte);
+	    Relation[] relations = initSolverProblem();
+	    Bounds bounds = insert_bounds(key, value, relations);
+	    callSolver(rte, relations, bounds);
 	} 
     }
 
+    public Relation[] initSolverProblem() {
+
+	Relation BS = Relation.unary("BS");
+	Relation Node = Relation.unary("Node");
+	Relation Keys = Relation.unary("Keys");
+	Relation Root = Relation.nary("BSTree.root", 2);
+	Relation Value = Relation.nary("Node.value", 2);
+	Relation Left = Relation.nary("Node.left", 2);
+	Relation Right = Relation.nary("Node.right", 2);
+
+	Relation[] relations = new Relation[7];
+	relations[0] = BS;
+	relations[1] = Node;
+	relations[2] = Keys;
+	relations[3] = Root;
+	relations[4] = Value;
+	relations[5] = Left;
+	relations[6] = Right;
+
+	int numNodes = nodes.size();
+	solNodeKeys = new int[numNodes];
+	solNodeLefts = new int[numNodes];
+	solNodeRights = new int[numNodes];
+
+	int maxVal = 0;
+	for (int i = 0; i < numNodes; i++) {
+	    int val = nodes.get(i).key; //.intValue();
+	    if (val > maxVal) {
+		maxVal = val;
+	    }
+	    solNodeLefts[i] = -1;
+	    solNodeRights[i] = -1;
+	}
+	maxInt = Math.max(maxVal,29);
+	intBitWidth = 1+(int)Math.ceil((double)Math.log(maxInt+1)/(double)Math.log(2));
+
+	return(relations);
+    }
+
+    // set bounds via inert method invariants including @modifies clause...
+    public Bounds insert_bounds(Integer key, V value, Relation[] relations) {
+
+	int p = getParentForNewNode(key).key;
+	System.out.println("new node will be a child of: " + p);
+
+	Relation BS = relations[0];
+	Relation Node = relations[1];
+	Relation Keys = relations[2];
+	Relation Root = relations[3];
+	Relation Value = relations[4];
+	Relation Left = relations[5];
+	Relation Right = relations[6];
+	    
+	int numNodes = nodes.size();
+	
+	String[] atoms = new String[maxInt+2];
+	String[] nodeAtoms = new String[numNodes];
+	
+	/*
+	            idxs = { 0,1,2,3,4,5,6, 7, 8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24}
+	            keys = {23,8,0,1,2,4,9,16,17,5,22,20,21,19,11,24,10,18, 6,14, 7,15, 3,24,13}
+
+	*/
+	int [] nodeIdxs    = new int[maxInt];
+	int [] leftFixes   = new int[numNodes];
+	int [] rightFixes  = new int[numNodes];	
+	
+	Object ti;
+	int i;
+	for(i=0;i<=maxInt;i++) {
+	    atoms[i] = Integer.toString(i); 
+	}
+	for(i=0;i<numNodes;i++) {
+	    int k = nodes.get(i).key; //intValue();
+	    nodeAtoms[i] = atoms[i];
+	    nodeIdxs[k] = i;
+	}
+	for(i=0;i<numNodes;i++) {
+	    Node<?> n = nodes.get(i);
+	    int k = n.key; //intValue();
+	    int lIdx, rIdx;
+	    Boolean unfixed = k == key || k == p;
+	    leftFixes[i] = (unfixed || n.left == null) ? -1 : nodeIdxs[n.left.key];
+	    rightFixes[i] = (unfixed || n.right == null) ? -1 : nodeIdxs[n.right.key];
+	}	
+	atoms[maxInt+1] = "BS"; 
+	println(atoms);
+	System.out.println(numNodes);
+	System.out.println(maxInt);
+	intprintln(nodeIdxs);
+	intprintln(leftFixes);
+	intprintln(rightFixes);
+	List<String> atomlist = Arrays.asList(atoms);
+	
+	Universe universe = new Universe(atomlist);
+	TupleFactory factory = universe.factory();
+	
+	Bounds bounds = new Bounds(universe);
+	
+	for(i=0;i<=maxInt;i++) {
+	    ti = Integer.toString(i); 
+	    bounds.boundExactly(i,factory.range(factory.tuple(ti),factory.tuple(ti)));
+	}
+	
+
+	TupleSet BS_upper = factory.noneOf(1);
+	TupleSet Node_upper = factory.noneOf(1);
+	TupleSet Keys_upper = factory.noneOf(1);
+	TupleSet Root_upper = factory.noneOf(2);
+	TupleSet Value_upper = factory.noneOf(2);
+	TupleSet Left_lower = factory.noneOf(2);
+	TupleSet Left_upper = factory.noneOf(2);
+	TupleSet Right_lower = factory.noneOf(2);
+	TupleSet Right_upper = factory.noneOf(2);
+
+	BS_upper.add(factory.tuple("BS"));
+	for(i=0;i<numNodes;i++) {
+	    Object n = nodeAtoms[i];
+	    int k = nodes.get(i).key; //intValue();
+	    Node_upper.add(factory.tuple(n));
+	    Keys_upper.add(factory.tuple(atoms[k]));
+	    Root_upper.add(factory.tuple("BS").product(factory.tuple(n)));
+	    if (leftFixes[i] != -1) {
+	      Left_lower.add(factory.tuple(n).product(factory.tuple(nodeAtoms[leftFixes[i]])));
+	      Left_upper.add(factory.tuple(n).product(factory.tuple(nodeAtoms[leftFixes[i]])));
+	    }
+	    if (rightFixes[i] != -1) {
+		Right_lower.add(factory.tuple(n).product(factory.tuple(nodeAtoms[rightFixes[i]])));
+		Right_upper.add(factory.tuple(n).product(factory.tuple(nodeAtoms[rightFixes[i]])));
+	    }
+	    for(int j=0;j<numNodes;j++) {
+		Object n2 = nodeAtoms[j];		    
+		if (leftFixes[i] == -1) {
+		    Left_upper.add(factory.tuple(n).product(factory.tuple(n2)));
+		}
+		if (rightFixes[i] == -1) {
+		    Right_upper.add(factory.tuple(n).product(factory.tuple(n2)));
+		}
+		
+	    }
+	    /*
+	      for(j=0;j<numNodes;j++) {
+	      Value_upper.add(factory.tuple(n).product(factory.tuple(atoms[k])));
+	      }
+	    */
+	    Value_upper.add(factory.tuple(n).product(factory.tuple(atoms[k])));
+	}
+
+	bounds.boundExactly(BS, BS_upper);
+	bounds.boundExactly(Node, Node_upper);
+	bounds.boundExactly(Keys, Keys_upper);
+	bounds.bound(Root, Root_upper);
+	//bounds.bound(Value, Value_upper);
+	bounds.boundExactly(Value, Value_upper);
+	bounds.bound(Left, Left_lower, Left_upper);
+	bounds.bound(Right, Right_lower, Right_upper);
+
+	return(bounds);
+    }
+    
+    
     public void delete(Integer key) {
         Node<V> n = lookupNode(key);
         if (n == null)
@@ -172,7 +352,7 @@ public class BSTree<V>
         assert n.left == null || n.right == null;
         Node<V> child = (n.right == null) ? n.left : n.right;
         replaceNode(n, child);
-	nodes.remove(key);
+	nodes.remove(n);
         verifyProperties();
     }
 
@@ -228,169 +408,42 @@ public class BSTree<V>
     }
 
     
-    public void callSolver(Throwable rte) {
+    public void callSolver(Throwable rte, Relation[] relations, Bounds bounds) {
 
 	System.out.println("!! " + rte + "... start solver fallback!");
 
 	waitingForSolver = true;
-	int numNodes = nodes.size();
-	int[] keys = new int[numNodes];
-	solNodeKeys = new int[numNodes];
-	solNodeLefts = new int[numNodes];
-	solNodeRights = new int[numNodes];
 
-	int maxVal = 0;
-	for (int i = 0; i < numNodes; i++) {
-	    int val = nodes.get(i).intValue();
-	    keys[i] = val;
-	    if (val > maxVal) {
-		maxVal = val;
-	    }
-	    solNodeLefts[i] = -1;
-	    solNodeRights[i] = -1;
-	}
-	int maxInt = Math.max(maxVal,29);
-
+	//System.out.println("nodes: " + nodes);
 	
-
-	System.out.println("nodes: " + nodes);
-	
-	new SolverThread(barrier,keys,maxInt).start();
+	new SolverThread(barrier,relations,bounds).start();
 
 	while(waitingForSolver); // wait until solution is here
     }
 
     private static class SolverThread extends Thread { 
 	CyclicBarrier barrier; 
-	int maxInt;
-	int[] keys;
-	
-	SolverThread(CyclicBarrier barrier, int[] keys, int maxInt) { 
-	    this.barrier = barrier;
-	    this.keys = keys;
-	    this.maxInt = maxInt;
-	} 
+	Bounds bounds;
+	Relation[] relations;
 
-	public void println(Object [] l){
-	    System.out.print("[");
-	    for(int i=0;i<l.length-1;i++) {
-		System.out.print(l[i]);
-		System.out.print(", ");
-	    }
-	    if(l.length > 0) {
-	    System.out.print(l[l.length-1]);
-	    }
-	    System.out.println("]");
-	}
+	SolverThread(CyclicBarrier barrier, Relation[] relations, Bounds bounds) { 
+	    this.barrier = barrier;
+	    this.bounds = bounds;
+	    this.relations = relations;
+	} 
 
 	public void run() { 
 	    System.out.println("in thread..."); 
 
-	    Relation BS = Relation.unary("BS");
-	    Relation Red = Relation.unary("Red");
-	    Relation Black = Relation.unary("Black");
-	    Relation Node = Relation.unary("Node");
-	    Relation Keys = Relation.unary("Keys");
-	    Relation Root = Relation.nary("BSTree.root", 2);
-	    Relation Value = Relation.nary("Node.value", 2);
-	    Relation Left = Relation.nary("Node.left", 2);
-	    Relation Right = Relation.nary("Node.right", 2);
+	    int numNodes = nodes.size();
 
-	    int numNodes = keys.length;
-	    int intBitWidth = 1+(int)Math.ceil((double)Math.log(maxInt+1)/(double)Math.log(2));
-	    String[] atoms = new String[maxInt+4];
-	    String[] nodes = new String[numNodes];
-
-	    //            idxs = {  0,  1,  2,  3,  4,  5,  6,  7  }
-	    //            keys = {  0,  8,  2,  6,  4,  9, 12, 13  }
-	    /*
-	    int [] parentFixes = {  2,  5,  3, -1,  2,  3,  5,  6 };
-	    int [] leftFixes   = { -1, -1,  0,  2, -1,  1, -1, -1 };
-	    int [] rightFixes  = { -1, -1,  4,  5, -1,  6,  7, -1 };
-	    */
-
-
-	    Object ti;
-	    int i;
-	    for(i=0;i<=maxInt;i++) {
-		atoms[i] = Integer.toString(i); 
-	    }
-	    for(i=0;i<numNodes;i++) {
-		nodes[i] = atoms[i];
-	    }
-	    atoms[maxInt+1] = "BS"; 
-	    atoms[maxInt+2] = "Red"; 
-	    atoms[maxInt+3] = "Black"; 
-	    println(atoms);
-	    System.out.println(numNodes);
-	    System.out.println(maxInt);
-	    List<String> atomlist = Arrays.asList(atoms);
-
-	    Universe universe = new Universe(atomlist);
-	    TupleFactory factory = universe.factory();
-	    Bounds bounds = new Bounds(universe);
-
-	    for(i=0;i<=maxInt;i++) {
-		ti = Integer.toString(i); 
-		bounds.boundExactly(i,factory.range(factory.tuple(ti),factory.tuple(ti)));
-	    }
-
-	    TupleSet BS_upper = factory.noneOf(1);
-	    BS_upper.add(factory.tuple("BS"));
-	    bounds.boundExactly(BS, BS_upper);
-	    
-	    TupleSet Red_upper = factory.noneOf(1);
-	    Red_upper.add(factory.tuple("Red"));
-	    bounds.boundExactly(Red, Red_upper);
-	    
-	    TupleSet Black_upper = factory.noneOf(1);
-	    Black_upper.add(factory.tuple("Black"));
-	    bounds.boundExactly(Black, Black_upper);
-	    
-	    TupleSet Node_upper = factory.noneOf(1);
-	    TupleSet Keys_upper = factory.noneOf(1);
-	    TupleSet Root_upper = factory.noneOf(2);
-	    TupleSet Value_upper = factory.noneOf(2);
-	    TupleSet Left_upper = factory.noneOf(2);
-	    TupleSet Right_upper = factory.noneOf(2);
-	    for(i=0;i<numNodes;i++) {
-		Object n = nodes[i];
-		Node_upper.add(factory.tuple(n));
-		Keys_upper.add(factory.tuple(atoms[keys[i]]));
-		Root_upper.add(factory.tuple("BS").product(factory.tuple(n)));
-		/*
-		if (leftFixes[i] != -1) {
-		    Left_upper.add(factory.tuple(n).product(factory.tuple(nodes[leftFixes[i]])));
-		}
-		if (rightFixes[i] != -1) {
-		    Right_upper.add(factory.tuple(n).product(factory.tuple(nodes[rightFixes[i]])));
-		}
-		*/
-		for(int j=0;j<numNodes;j++) {
-		    Object n2 = nodes[j];		    
-			//if (leftFixes[i] == -1) {
-			Left_upper.add(factory.tuple(n).product(factory.tuple(n2)));
-			//}
-			//if (rightFixes[i] == -1) {
-			Right_upper.add(factory.tuple(n).product(factory.tuple(n2)));
-			//}
-
-		}
-		/*
-		for(j=0;j<numNodes;j++) {
-		    Value_upper.add(factory.tuple(n).product(factory.tuple(atoms[keys[j]])));
-		}
-		*/
-		Value_upper.add(factory.tuple(n).product(factory.tuple(atoms[keys[i]])));
-	    }
-	    bounds.boundExactly(Node, Node_upper);
-	    bounds.boundExactly(Keys, Keys_upper);
-	    bounds.bound(Root, Root_upper);
-	    //bounds.bound(Value, Value_upper);
-	    bounds.boundExactly(Value, Value_upper);
-	    bounds.bound(Left, Left_upper);
-	    bounds.bound(Right, Right_upper);
-
+	    Relation BS = relations[0];
+	    Relation Node = relations[1];
+	    Relation Keys = relations[2];
+	    Relation Root = relations[3];
+	    Relation Value = relations[4];
+	    Relation Left = relations[5];
+	    Relation Right = relations[6];
 
 	    Variable x15=Variable.unary("this");
 	    Decls x14=x15.oneOf(BS);
@@ -525,7 +578,7 @@ public class BSTree<V>
 	    Iterator<Tuple> leftRel = sol.instance().tuples(Left).iterator();
 	    Iterator<Tuple> rightRel = sol.instance().tuples(Right).iterator();
 	    solRootNodeIdx = Integer.parseInt((String)rootRel.next().atom(1));
-	    for (i=0;i<numNodes;i++) {
+	    for (int i=0;i<numNodes;i++) {
 		solNodeKeys[i] = Integer.parseInt((String)valueRel.next().atom(1));
 	    }
 	    while (leftRel.hasNext()) {
@@ -550,11 +603,35 @@ public class BSTree<V>
 	}
     }
 
+    public void println(Object [] l){
+	System.out.print("[");
+	    for(int i=0;i<l.length-1;i++) {
+		System.out.print(l[i]);
+		System.out.print(", ");
+	    }
+	    if(l.length > 0) {
+		System.out.print(l[l.length-1]);
+	    }
+	    System.out.println("]");
+    }
+
+    public void intprintln(int [] l){
+	System.out.print("[");
+	    for(int i=0;i<l.length-1;i++) {
+		System.out.print(l[i]);
+		System.out.print(", ");
+	    }
+	    if(l.length > 0) {
+		System.out.print(l[l.length-1]);
+	    }
+	    System.out.println("]");
+    }
+    
     public static void main(String[] args) {
         BSTree<Integer> t = new BSTree<Integer>();
         t.print();
 
-	int [] a = {23,8,0,1,2,4,9,16,17,5,22,13}; //20,21,19,11,24,10,18,6,14,7,15,3,24};
+	int [] a = {23,8,0,1,2,4,9,16,17,5,22,20,21,19,11,24,10,18,6,14,7,15,3,25,13};
 	for (int i=0; i < a.length; i++) {
 	    t.insert(a[i],null);
 	    t.print();
