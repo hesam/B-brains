@@ -50,6 +50,7 @@ public class BSTree<V>
     // solver related
     private boolean waitingForSolver;
     private static int maxInt;
+    private static int maxSize;
     private static int intBitWidth;
     private static int solRootNodeIdx;
     private static int [] solNodeKeys;
@@ -162,7 +163,7 @@ public class BSTree<V>
         Node<V> insertedNode = new Node<V>(key, value, null, null);
 	nodes.add(insertedNode);
 	try {
-	    if (nodes.size() == 50) { int i = 1/0;  } /* FIXME - THROW EXCEPTION HERE */
+	    if (nodes.size() == maxSize) { int i = 1/0;  } /* FIXME - THROW EXCEPTION HERE */
 	    if (root == null) {
 		root = insertedNode;
 	    } else {
@@ -210,7 +211,7 @@ public class BSTree<V>
 	    solNodeLefts[i] = -1;
 	    solNodeRights[i] = -1;
 	}
-	maxInt = Math.max(maxVal,99);
+	maxInt = Math.max(maxVal,maxSize);
 	intBitWidth = 1+(int)Math.ceil((double)Math.log(maxInt+1)/(double)Math.log(2));
 
 	return(relations);
@@ -259,8 +260,8 @@ public class BSTree<V>
 	    int k = n.key; //intValue();
 	    int lIdx, rIdx;
 	    Boolean unfixed = k == key || k == p;
-	    leftFixes[i] = (unfixed || n.left == null) ? -1 : nodeIdxs[n.left.key];
-	    rightFixes[i] = (unfixed || n.right == null) ? -1 : nodeIdxs[n.right.key];
+	    leftFixes[i] = unfixed ? -1 : n.left == null ? -2 : nodeIdxs[n.left.key];
+	    rightFixes[i] = unfixed ? -1 : n.right == null ? -2 : nodeIdxs[n.right.key];
 	}	
 	atoms[maxInt+1] = "BS"; 
 	println(atoms);
@@ -299,11 +300,11 @@ public class BSTree<V>
 	    Node_upper.add(factory.tuple(n));
 	    Keys_upper.add(factory.tuple(atoms[k]));
 	    Root_upper.add(factory.tuple("BS").product(factory.tuple(n)));
-	    if (leftFixes[i] != -1) {
+	    if (leftFixes[i] >= 0) {
 	      Left_lower.add(factory.tuple(n).product(factory.tuple(nodeAtoms[leftFixes[i]])));
 	      Left_upper.add(factory.tuple(n).product(factory.tuple(nodeAtoms[leftFixes[i]])));
 	    }
-	    if (rightFixes[i] != -1) {
+	    if (rightFixes[i] >= 0) {
 		Right_lower.add(factory.tuple(n).product(factory.tuple(nodeAtoms[rightFixes[i]])));
 		Right_upper.add(factory.tuple(n).product(factory.tuple(nodeAtoms[rightFixes[i]])));
 	    }
@@ -629,7 +630,8 @@ public class BSTree<V>
     }
     
     public static void main(String[] args) {
-	int size = 50;
+	int size = 25;
+	maxSize = size;
 	Random rand = new Random(1111L);
 
         BSTree<Integer> t = new BSTree<Integer>();
