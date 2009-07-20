@@ -121,11 +121,11 @@ public class BSTree<V>
         }
     }
 
-    public Node<V> getParentForNewNode(Integer key) {
-	return getParentForNewNode(key, null, null);
+    public Node<V> getNewNodeParent(Integer key) {
+	return getNewNodeParent(key, null, null);
     }
     
-    public Node<V> getParentForNewNode(Integer key, V value, Node<V> insertedNode) {
+    public Node<V> getNewNodeParent(Integer key, V value, Node<V> insertedNode) {
 
 	Node<V> n = root;
 	while (true) {
@@ -159,21 +159,51 @@ public class BSTree<V>
 	return n;
     }
 
+    public Node<V> getNodeParent(Integer key) {
+
+	Node<V> n = root;
+	Node<V> p = null;
+	while (true) {
+	    int compResult = key.compareTo(n.key);
+	    if (compResult == 0) {
+		break;
+	    } else if (compResult < 0) {
+		if (n.left == null) {
+		    p = null;
+		    break;
+		} else {
+		    p = n;
+		    n = n.left;
+		}
+	    } else {
+		assert compResult > 0;
+		if (n.right == null) {
+		    p = null;
+		    break;
+		} else {
+		    p = n;
+		    n = n.right;
+		}
+	    }
+	}
+	return p;
+    }
+
     public void insert(Integer key, V value) {
         Node<V> insertedNode = new Node<V>(key, value, null, null);
 	nodes.add(insertedNode);
 	try {
-	    if (nodes.size() == maxSize) { int i = 1/0;  } /* FIXME - THROW EXCEPTION HERE */
+	    //if (nodes.size() == maxSize) { int i = 1/0;  } /* FIXME - THROW EXCEPTION HERE */
 	    if (root == null) {
 		root = insertedNode;
 	    } else {
-		Node<V> n = getParentForNewNode(key, value, insertedNode);
+		Node<V> n = getNewNodeParent(key, value, insertedNode);
 		insertedNode.parent = n;
 	    }
 	    verifyProperties();
 	} catch (Throwable rte) {
 	    Relation[] relations = initSolverProblem();
-	    Bounds bounds = insert_bounds(key, value, relations);
+	    Bounds bounds = insert_bounds(insertedNode, relations);
 	    callSolver(rte, relations, bounds);
 	} 
     }
@@ -217,11 +247,8 @@ public class BSTree<V>
 	return(relations);
     }
 
-    // set bounds via inert method invariants including @modifies clause...
-    public Bounds insert_bounds(Integer key, V value, Relation[] relations) {
-
-	int p = getParentForNewNode(key).key;
-	System.out.println("new node will be a child of: " + p);
+    // set bounds via insert method invariants including @modifies clause...
+    public Bounds insert_bounds(Node<?> node, Relation[] relations) {
 
 	Relation BS = relations[0];
 	Relation Node = relations[1];
@@ -245,6 +272,7 @@ public class BSTree<V>
 	int [] leftFixes   = new int[numNodes];
 	int [] rightFixes  = new int[numNodes];	
 	
+
 	Object ti;
 	int i;
 	for(i=0;i<=maxInt;i++) {
@@ -255,13 +283,17 @@ public class BSTree<V>
 	    nodeAtoms[i] = atoms[i];
 	    nodeIdxs[k] = i;
 	}
+	int key = node.key;
+	int p = getNewNodeParent(key).key;
+	System.out.println("new node will be a child of: " + p);
+
 	for(i=0;i<numNodes;i++) {
-	    Node<?> n = nodes.get(i);
-	    int k = n.key; //intValue();
+	    Node<?> nd = nodes.get(i);
+	    int k = nd.key; //intValue();
 	    int lIdx, rIdx;
 	    Boolean unfixed = k == key || k == p;
-	    leftFixes[i] = unfixed ? -1 : n.left == null ? -2 : nodeIdxs[n.left.key];
-	    rightFixes[i] = unfixed ? -1 : n.right == null ? -2 : nodeIdxs[n.right.key];
+	    leftFixes[i] = unfixed ? -1 : nd.left == null ? -2 : nodeIdxs[nd.left.key];
+	    rightFixes[i] = unfixed ? -1 : nd.right == null ? -2 : nodeIdxs[nd.right.key];
 	}	
 	atoms[maxInt+1] = "BS"; 
 	println(atoms);
@@ -341,21 +373,157 @@ public class BSTree<V>
     
     public void delete(Integer key) {
         Node<V> n = lookupNode(key);
-        if (n == null)
-            return;  // Key not found, do nothing
-        if (n.left != null && n.right != null) {
-            // Copy key/value from predecessor and then delete it instead
-            Node<V> pred = maximumNode(n.left);
-            n.key   = pred.key;
-            n.value = pred.value;
-            n = pred;
-        }
-
-        assert n.left == null || n.right == null;
-        Node<V> child = (n.right == null) ? n.left : n.right;
-        replaceNode(n, child);
 	nodes.remove(n);
-        verifyProperties();
+	try {
+	    if (true) { int i = 1/0;  } /* FIXME - THROW EXCEPTION HERE */
+	    if (n == null)
+		return;  // Key not found, do nothing
+	    if (n.left != null && n.right != null) {
+		// Copy key/value from predecessor and then delete it instead
+		Node<V> pred = maximumNode(n.left);
+		n.key   = pred.key;
+		n.value = pred.value;
+		n = pred;
+	    }
+
+	    assert n.left == null || n.right == null;
+	    Node<V> child = (n.right == null) ? n.left : n.right;
+	    replaceNode(n, child);
+	    verifyProperties();
+	    
+	} catch (Throwable rte) {
+	    Relation[] relations = initSolverProblem();
+	    Bounds bounds = delete_bounds(n, relations);
+	    callSolver(rte, relations, bounds);
+	} 
+    }
+
+    // set bounds via insert method invariants including @modifies clause...
+    public Bounds delete_bounds(Node<?> node, Relation[] relations) {
+
+	Relation BS = relations[0];
+	Relation Node = relations[1];
+	Relation Keys = relations[2];
+	Relation Root = relations[3];
+	Relation Value = relations[4];
+	Relation Left = relations[5];
+	Relation Right = relations[6];
+	    
+	int numNodes = nodes.size();
+	
+	String[] atoms = new String[maxInt+2];
+	String[] nodeAtoms = new String[numNodes];
+	
+	/*
+	            idxs = { 0,1,2,3,4,5,6, 7, 8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24}
+	            keys = {23,8,0,1,2,4,9,16,17,5,22,20,21,19,11,24,10,18, 6,14, 7,15, 3,24,13}
+
+	*/
+	int[] nodeKeys = new int[numNodes];
+	int [] nodeIdxs    = new int[maxInt];
+	int [] leftFixes   = new int[numNodes];
+	int [] rightFixes  = new int[numNodes];	
+	
+	Object ti;
+	int i;
+	for(i=0;i<=maxInt;i++) {
+	    atoms[i] = Integer.toString(i); 
+	}
+	for(i=0;i<numNodes;i++) {
+	    int k = nodes.get(i).key; //intValue();
+	    nodeAtoms[i] = atoms[i];
+	    nodeIdxs[k] = i;
+	    nodeKeys[i] = k;
+	}
+	int key = node.key;
+	int p = getNodeParent(key).key;
+	System.out.println("deleted node is a child of: " + p);
+	int l = node.left == null ? -1 : node.left.key;
+	int r = node.right == null ? -1 : node.right.key;
+	System.out.println(" node: " + node.key + " key: " + key + " l: " + l + " r: " + r);
+	for(i=0;i<numNodes;i++) {
+	    Node<?> nd = nodes.get(i);
+	    int k = nd.key; //intValue();
+	    int lIdx, rIdx;
+	    Boolean unfixed = k == key || k == p || k == l || k == r;
+	    leftFixes[i] = unfixed ? -1 : nd.left == null ? -2 : nodeIdxs[nd.left.key];
+	    rightFixes[i] = unfixed ? -1 : nd.right == null ? -2 : nodeIdxs[nd.right.key];
+	}	
+	atoms[maxInt+1] = "BS"; 
+	println(atoms);
+	System.out.println(numNodes);
+	System.out.println(maxInt);
+	intprintln(nodeIdxs);
+	intprintln(nodeKeys);
+	intprintln(leftFixes);
+	intprintln(rightFixes);
+	List<String> atomlist = Arrays.asList(atoms);
+	
+	Universe universe = new Universe(atomlist);
+	TupleFactory factory = universe.factory();
+	
+	Bounds bounds = new Bounds(universe);
+	
+	for(i=0;i<=maxInt;i++) {
+	    ti = Integer.toString(i); 
+	    bounds.boundExactly(i,factory.range(factory.tuple(ti),factory.tuple(ti)));
+	}
+	
+
+	TupleSet BS_upper = factory.noneOf(1);
+	TupleSet Node_upper = factory.noneOf(1);
+	TupleSet Keys_upper = factory.noneOf(1);
+	TupleSet Root_upper = factory.noneOf(2);
+	TupleSet Value_upper = factory.noneOf(2);
+	TupleSet Left_lower = factory.noneOf(2);
+	TupleSet Left_upper = factory.noneOf(2);
+	TupleSet Right_lower = factory.noneOf(2);
+	TupleSet Right_upper = factory.noneOf(2);
+
+	BS_upper.add(factory.tuple("BS"));
+	for(i=0;i<numNodes;i++) {
+	    Object n = nodeAtoms[i];
+	    int k = nodes.get(i).key; //intValue();
+	    Node_upper.add(factory.tuple(n));
+	    Keys_upper.add(factory.tuple(atoms[k]));
+	    Root_upper.add(factory.tuple("BS").product(factory.tuple(n)));
+	    if (leftFixes[i] >= 0) {
+	      Left_lower.add(factory.tuple(n).product(factory.tuple(nodeAtoms[leftFixes[i]])));
+	      Left_upper.add(factory.tuple(n).product(factory.tuple(nodeAtoms[leftFixes[i]])));
+	    }
+	    if (rightFixes[i] >= 0) {
+		Right_lower.add(factory.tuple(n).product(factory.tuple(nodeAtoms[rightFixes[i]])));
+		Right_upper.add(factory.tuple(n).product(factory.tuple(nodeAtoms[rightFixes[i]])));
+	    }
+	    for(int j=0;j<numNodes;j++) {
+		Object n2 = nodeAtoms[j];		    
+		if (leftFixes[i] == -1) {
+		    Left_upper.add(factory.tuple(n).product(factory.tuple(n2)));
+		}
+		if (rightFixes[i] == -1) {
+		    Right_upper.add(factory.tuple(n).product(factory.tuple(n2)));
+		}
+		
+	    }
+	    /*
+	      for(j=0;j<numNodes;j++) {
+	      Value_upper.add(factory.tuple(n).product(factory.tuple(atoms[k])));
+	      }
+	    */
+	    Value_upper.add(factory.tuple(n).product(factory.tuple(atoms[k])));
+	}
+
+	bounds.boundExactly(BS, BS_upper);
+	bounds.boundExactly(Node, Node_upper);
+	bounds.boundExactly(Keys, Keys_upper);
+	bounds.bound(Root, Root_upper);
+	//bounds.bound(Value, Value_upper);
+	bounds.boundExactly(Value, Value_upper);
+	bounds.bound(Left, Left_lower, Left_upper);
+	bounds.bound(Right, Right_lower, Right_upper);
+
+	return(bounds);
+
     }
 
     private static <V> Node<V> maximumNode(Node<V> n) {
@@ -637,8 +805,6 @@ public class BSTree<V>
         BSTree<Integer> t = new BSTree<Integer>();
         t.print();
 
-	//int [] a = {23,8,0,1,2,4,9,16,17,5,22,20,21,19,11,24,10,18,6,14,7,15,3,25,13};
-
 	// create an array of the given size
 	int[] a = new int[size];
 	  	
@@ -655,6 +821,10 @@ public class BSTree<V>
 	    t.insert(temp,null);
 	    t.print();
 	}
+
+	// test delete
+	t.delete(8);
+	t.print();
 
     }
 
