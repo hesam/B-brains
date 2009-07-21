@@ -39,6 +39,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Random;
+
 
 enum Color { RED, BLACK }
 
@@ -343,6 +345,64 @@ public class RBTree<V>
         }
     }
 
+
+    ////////////////////////
+
+    private void insertObserveCase1(Node<?> n, List<Integer> affectedNodes) {
+	System.out.println("case1");
+        if (n.parent == null)
+            affectedNodes.add(n.key);
+        else
+            insertObserveCase2(n, affectedNodes);
+    }
+
+    private void insertObserveCase2(Node<?> n, List<Integer> affectedNodes) {
+	System.out.println("case2");
+        if (nodeColor(n.parent) == Color.BLACK) {
+	    affectedNodes.add(n.parent.key);
+            return; // Tree is still valid
+	} else
+            insertObserveCase3(n, affectedNodes);
+    }
+
+    void insertObserveCase3(Node<?> n, List<Integer> affectedNodes) {
+        if (nodeColor(n.uncle()) == Color.RED) {
+	    System.out.println("case3.1");
+	    affectedNodes.add(n.parent.key);
+	    affectedNodes.add(n.uncle().key);
+	    affectedNodes.add(n.grandparent().key);
+            insertObserveCase1(n.grandparent(), affectedNodes);
+        } else {
+	    System.out.println("case3.2");
+            insertObserveCase4(n, affectedNodes);
+        }
+    }
+
+    void insertObserveCase4(Node<?> n, List<Integer> affectedNodes) {
+	if (n.parent != null) 
+	    affectedNodes.add(n.parent.key);
+	if (n.grandparent() != null) 
+	    affectedNodes.add(n.grandparent().key);
+	if (n.parent.grandparent() != null) 
+	    affectedNodes.add(n.parent.grandparent().key);
+        if (n == n.parent.right && n.parent == n.grandparent().left) {
+	    affectedNodes.add(n.parent.left.key);
+	    if (n.left != null) 
+		affectedNodes.add(n.left.key);
+	    if (n.right != null) 
+		affectedNodes.add(n.right.key);
+        } else if (n == n.parent.left && n.parent == n.grandparent().right) {
+	    affectedNodes.add(n.parent.right.key);
+	    if (n.left != null) 
+		affectedNodes.add(n.left.key);
+	    if (n.right != null) 
+		affectedNodes.add(n.right.key);            
+        }
+    }
+
+
+    ///////////////////////
+
     public void delete(Integer key) {
         Node<V> n = lookupNode(key);
         if (n == null)
@@ -513,7 +573,7 @@ public class RBTree<V>
 
 	int maxVal = 0;
 	for (int i = 0; i < numNodes; i++) {
-	    int val = nodes.get(i).key; //.intValue();
+	    int val = nodes.get(i).key;
 	    if (val > maxVal) {
 		maxVal = val;
 	    }
@@ -525,7 +585,7 @@ public class RBTree<V>
 
     }
     // set bounds via insert method invariants including @modifies clause...
-    public int[][] insert_bounds(Node<?> node) {
+    public int[][] insert_bounds(Node<V> node) {
 	    
 	initSolverProblem();
 	int numNodes = nodes.size();
@@ -541,16 +601,26 @@ public class RBTree<V>
 	    nodeIdxs[k] = i;
 	}
 	int key = node.key;
-	int p = getNewNodeParent(key).key;
-	System.out.println("new node will be a child of: " + p);
+	Node<V> p = getNewNodeParent(key);
+  
+	node.parent = p; // fixme
+       
+	System.out.println("new node will be a child of: " + p.key);
+
+	List<Integer> affectedNodes = new ArrayList<Integer>();
+
+	insertObserveCase1(node, affectedNodes);
+
+	System.out.println("affected nodes will be: " + affectedNodes);
 
 	for(int i=0;i<numNodes;i++) {
 	    Node<?> nd = nodes.get(i);
-	    int k = nd.key; //intValue();
-	    leftFixes[i] = -1; 
-	    rightFixes[i] = -1; 
-	    parentFixes[i] = -1; 
-	    colorFixes[i] = -1; 
+	    int k = nd.key;
+	    Boolean unfixed = k == key || affectedNodes.contains(k);
+	    leftFixes[i] = unfixed ? -1 : nd.left == null ? -2 : nodeIdxs[nd.left.key];
+	    rightFixes[i] = unfixed ? -1 : nd.right == null ? -2 : nodeIdxs[nd.right.key];
+	    parentFixes[i] = unfixed ? -1 : nd.parent == null? -2 : nodeIdxs[nd.parent.key];
+	    colorFixes[i] = unfixed ? -1 : nd.color == Color.BLACK ? 0 : 1;
 	}	
 	System.out.println(numNodes);
 	System.out.println(maxInt);
@@ -663,22 +733,23 @@ public class RBTree<V>
 		Node_upper.add(factory.tuple(n));
 		Keys_upper.add(factory.tuple(atoms[k]));
 		Root_upper.add(factory.tuple("RB").product(factory.tuple(n)));
-		if (parentFixes[i] != -1) {
-		    Color_lower.add(factory.tuple(n).product(factory.tuple(colorFixes[i])));
-		    Color_upper.add(factory.tuple(n).product(factory.tuple(colorFixes[i])));
+		if (colorFixes[i] >= 0) {
+		    String c = colorFixes[i] == 0 ? "Black" : "Red";
+		    Color_lower.add(factory.tuple(n).product(factory.tuple(c)));
+		    Color_upper.add(factory.tuple(n).product(factory.tuple(c)));
 		} else {
 		    Color_upper.add(factory.tuple(n).product(factory.tuple("Red")));
 		    Color_upper.add(factory.tuple(n).product(factory.tuple("Black")));
 		}
-		if (parentFixes[i] != -1) {
+		if (parentFixes[i] >= 0) {
 		    Parent_lower.add(factory.tuple(n).product(factory.tuple(nodeAtoms[parentFixes[i]])));
 		    Parent_upper.add(factory.tuple(n).product(factory.tuple(nodeAtoms[parentFixes[i]])));
 		}
-		if (leftFixes[i] != -1) {
+		if (leftFixes[i] >= 0) {
 		    Left_lower.add(factory.tuple(n).product(factory.tuple(nodeAtoms[leftFixes[i]])));
 		    Left_upper.add(factory.tuple(n).product(factory.tuple(nodeAtoms[leftFixes[i]])));
 		}
-		if (rightFixes[i] != -1) {
+		if (rightFixes[i] >= 0) {
 		    Right_lower.add(factory.tuple(n).product(factory.tuple(nodeAtoms[rightFixes[i]])));
 		    Right_upper.add(factory.tuple(n).product(factory.tuple(nodeAtoms[rightFixes[i]])));
 		}
@@ -1009,24 +1080,32 @@ public class RBTree<V>
     }
     
     public static void main(String[] args) {
+
 	TEST_METHOD = 0;
-	MAX_SIZE = 8;
+	MAX_SIZE = 100;
+	Random rand = new Random(1111L);
+
         RBTree<Integer> t = new RBTree<Integer>();
         t.print();
 
-	int [] a = {10,6,3,13,18,16,17,15};
-	for (int i=0; i < a.length; i++) {
-	    t.insert(a[i],null);
+	// create an array of the given size
+	int[] a = new int[MAX_SIZE];
+	  	
+	for (int i = 0 ; i < MAX_SIZE; ++i) {
+	    a[i] = i;// * 5;
+	}
+
+	// randomly shuffle the elements in the array and 
+	// insert them in the tree	
+	for (int i = MAX_SIZE; i >0; --i) {
+	    int n = rand.nextInt(i);
+	    int temp = a[n];
+	    a[n] = a[i-1];
+	    t.insert(temp,null);
 	    t.print();
 	}
+
     }
 
 }
 
-
-/*
-
-}}
-
-
- */

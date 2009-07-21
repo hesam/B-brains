@@ -218,7 +218,7 @@ public class BSTree<V>
 
 	int maxVal = 0;
 	for (int i = 0; i < numNodes; i++) {
-	    int val = nodes.get(i).key; //.intValue();
+	    int val = nodes.get(i).key;
 	    if (val > maxVal) {
 		maxVal = val;
 	    }
@@ -231,7 +231,7 @@ public class BSTree<V>
     }
 
     // set bounds via insert method invariants including @modifies clause...
-    public int[][] insert_bounds(Node<?> node) {
+    public int[][] insert_bounds(Node<V> node) {
 	    
 	initSolverProblem();
 	int numNodes = nodes.size();
@@ -250,7 +250,7 @@ public class BSTree<V>
 
 	for(int i=0;i<numNodes;i++) {
 	    Node<?> nd = nodes.get(i);
-	    int k = nd.key; //intValue();
+	    int k = nd.key;
 	    int lIdx, rIdx;
 	    Boolean unfixed = k == key || k == p;
 	    leftFixes[i] = unfixed ? -1 : nd.left == null ? -2 : nodeIdxs[nd.left.key];
@@ -294,7 +294,7 @@ public class BSTree<V>
     }
 
     // set bounds via insert method invariants including @modifies clause...
-    public int[][] delete_bounds(Node<?> node) {
+    public int[][] delete_bounds(Node<V> node) {
 	    
 	initSolverProblem();
 	int numNodes = nodes.size();
@@ -315,7 +315,7 @@ public class BSTree<V>
 	System.out.println(" node: " + node.key + " key: " + key + " l: " + l + " r: " + r);
 	for(int i=0;i<numNodes;i++) {
 	    Node<?> nd = nodes.get(i);
-	    int k = nd.key; //intValue();
+	    int k = nd.key;
 	    int lIdx, rIdx;
 	    Boolean unfixed = k == key || k == p || k == l || k == r;
 	    leftFixes[i] = unfixed ? -1 : nd.left == null ? -2 : nodeIdxs[nd.left.key];
@@ -432,7 +432,7 @@ public class BSTree<V>
 		atoms[i] = Integer.toString(i); 
 	    }
 	    for(i=0;i<numNodes;i++) {
-		int k = nodes.get(i).key; //intValue();
+		int k = nodes.get(i).key;
 		nodeAtoms[i] = atoms[i];
 		nodeIdxs[k] = i;
 	    }
@@ -721,10 +721,3 @@ public class BSTree<V>
 
 }
 
-
-/*
-
-}}
-
-
- */
