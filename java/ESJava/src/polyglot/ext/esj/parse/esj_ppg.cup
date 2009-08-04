@@ -3036,27 +3036,50 @@ pred_block_statements ::=
 
 pred_statement ::=
     pred_statement_expression:a {:
-                                Expr a1 = (Expr)a.get(0);
-	      Expr a2 = (Expr)a.get(1);
+                                Expr quantList = (Expr)a.get(0);
+	      Expr quantExpr = (Expr)a.get(1);
 	      List l = new TypedList(new LinkedList(), Stmt.class, false);
 
 
 	       FlagAnnotations fl = new FlagAnnotations(); 
                fl.classicFlags(Flags.NONE);
                fl.annotations(new TypedList(new LinkedList(), AnnotationElem.class, false));
-               List vds = parser.variableDeclarators(new JL5Name(parser, parser.pos(a), "TreeSet").toType(),
-						     new VarDeclarator(parser.pos(a),
-                            			                       "quantList"), 
+	       VarDeclarator quantVar = new VarDeclarator(parser.pos(a), "quantList");
+	       quantVar.init = quantList;
+               List quantListVarD = parser.variableDeclarators(new JL5Name(parser, parser.pos(a), "TreeSet").toType(),
+						     quantVar,
+						     fl); 
+	      Stmt forLoop;
+	      VarDeclarator forLoopVar =  new VarDeclarator(parser.pos(a), "i");
+	      forLoopVar.init = parser.nf.IntLit(parser.pos(a), IntLit.INT, 0);
+              List forLoopVarD = parser.variableDeclarators(parser.nf.CanonicalTypeNode(parser.pos(a), parser.ts.Int()),
+						     forLoopVar,
 						     fl); 
 
- 	      Expr assign = parser.nf.Assign(parser.pos(a, a), 
-	                                    new JL5Name(parser, parser.pos(a), "quantList").toExpr(), 
-	      				    Assign.ASSIGN, 		
-	      				    a1);
-	      Stmt assignStmt = parser.nf.Eval(parser.pos(assign, assign), assign);
-	      l.addAll(vds);
-	      l.add(assignStmt); 
-	      l.add(parser.nf.JL5Return(parser.pos(a, a), a2));
+               List forLoopInit = new TypedList(new LinkedList(), ForInit.class, false);
+               forLoopInit.addAll(forLoopVarD);
+
+	       Expr forLoopCond = parser.nf.Binary(parser.pos(a, a), 
+	       	    		                   new JL5Name(parser, parser.pos(a), "i").toExpr(), 
+						   Binary.LE, 
+						   parser.nf.IntLit(parser.pos(a), IntLit.INT, 42));
+
+	       List forLoopUpd = new TypedList(new LinkedList(), Eval.class, false);
+               forLoopUpd.add(parser.nf.Eval(parser.pos(a), parser.nf.Unary(parser.pos(a), Unary.POST_INC, new JL5Name(parser, parser.pos(a), "i").toExpr())));
+
+	      Stmt quantExprStmt = parser.nf.Eval(parser.pos(a), quantExpr);	     
+
+	      forLoop = parser.nf.For(parser.pos(a), 
+	                                forLoopInit, 
+					forLoopCond, 
+					forLoopUpd, 
+					parser.nf.Block(parser.pos(a), quantExprStmt));
+	      l.addAll(quantListVarD);
+	      l.add(forLoop);
+	      l.add(parser.nf.JL5Return(parser.pos(a), parser.nf.BooleanLit(parser.pos(a),
+                                        	        true)));
+	      
+
 	      RESULT = l;
 	   
                                 :};
