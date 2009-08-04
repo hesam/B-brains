@@ -36,8 +36,19 @@ class Node<V>
     }
 }
 
+
 public class BSTree<V>
 {
+
+    /*@
+    // CLASS INVARIANTS
+    no n: Node | (n in n.^left or n in n.^right) and
+    all n: Node | lone p: Node | p.left == n and
+    all n: Node | lone p: Node | p.right == n and    
+    all n: Node, c: n.left.*(left+right) | c.value < n.value and
+    all n: Node, c: n.right.*(left+right) | c.value > n.value
+    @*/
+
     public static final boolean VERIFY_BSTREE = true;
     private static final int INDENT_STEP = 4;
 
