@@ -26,9 +26,9 @@ terminal Token ALL;
 
 non terminal MethodDecl pred_method_declaration, pred_method_header;
 non terminal Block pred_method_body, pred_block;
-non terminal List pred_block_statements, pred_block_statement;
-non terminal Stmt pred_statement;
-non terminal Expr pred_statement_expression, pred_expression;
+non terminal List pred_block_statements;
+non terminal List pred_statement;
+non terminal List pred_statement_expression, pred_expression;
 
 start with goal;
 
@@ -63,44 +63,58 @@ pred_block ::=
 	   ;
 
 pred_block_statements ::= 
-    pred_block_statement:a
-           {: List l = new TypedList(new LinkedList(), Stmt.class, false);
-
-	       FlagAnnotations fl = new FlagAnnotations(); 
-               fl.classicFlags(Flags.NONE);
-               fl.annotations(new TypedList(new LinkedList(), AnnotationElem.class, false));
-               List vds = parser.variableDeclarators(parser.nf.CanonicalTypeNode(parser.pos(a), parser.ts.Int()),
-						     new VarDeclarator(parser.pos(a),
-                            			                       "quantList"), 
-						     fl); 
-
-
- 	      Expr assign = parser.nf.Assign(parser.pos(a, a), 
-	                                    new JL5Name(parser, parser.pos(a), "quantList").toExpr(), 
-	      				    Assign.ASSIGN, 		
-	      				    parser.nf.IntLit(parser.pos(a), IntLit.INT,
-                                                             42));
-	      Stmt assignStmt = parser.nf.Eval(parser.pos(assign, assign), assign);
-              List b = new TypedList(new LinkedList(), Stmt.class, false);
-              b.add(assignStmt);
-	      l.addAll(vds);
-	      l.addAll(b); 
-              l.addAll(a);
-              RESULT = l; 
-           :}
-	   ;
-
-pred_block_statement ::=
-    pred_statement:a 
-           {: List l = new TypedList(new LinkedList(), Stmt.class, false);
-              l.add(a);
-              RESULT = l; 
-           :}
+    pred_statement:a
+           {: RESULT = a; :}
 	   ;
 
 pred_statement ::=
-    pred_statement_expression:a SEMICOLON:d 
-           {: RESULT = parser.nf.JL5Return(parser.pos(a, d), a); :}
+    pred_statement_expression:a 
+           {: Expr quantList = (Expr)a.get(0);
+	      Expr quantExpr = (Expr)a.get(1);
+	      List l = new TypedList(new LinkedList(), Stmt.class, false);
+	      
+	      FlagAnnotations fl = new FlagAnnotations(); 
+              fl.classicFlags(Flags.NONE);
+              fl.annotations(new TypedList(new LinkedList(), AnnotationElem.class, false));
+	      VarDeclarator quantVar = new VarDeclarator(parser.pos(a), "quantList");
+	      Expr quantVarExpr = new JL5Name(parser, parser.pos(a), "quantList").toExpr();
+	      quantVar.init = quantList;   
+              List quantListVarD = parser.variableDeclarators(new JL5Name(parser, parser.pos(a), "ArrayList").toType(), quantVar, fl); 
+	      Stmt forLoop;
+	      VarDeclarator forLoopVar =  new VarDeclarator(parser.pos(a), "i");
+	      Expr forLoopVarExpr = new JL5Name(parser, parser.pos(a), "i").toExpr();
+
+	      forLoopVar.init = parser.nf.IntLit(parser.pos(a), IntLit.INT, 0);
+              List forLoopVarD = parser.variableDeclarators(parser.nf.CanonicalTypeNode(parser.pos(a), parser.ts.Int()), forLoopVar, fl); 
+
+              List forLoopInit = new TypedList(new LinkedList(), ForInit.class, false);
+              forLoopInit.addAll(forLoopVarD);
+
+
+	      Expr forLoopCond = parser.nf.Binary(parser.pos(a, a), 
+	       	    		                   forLoopVarExpr, 
+						   Binary.LT, 
+						   parser.nf.JL5Call(parser.pos(a), quantVarExpr,
+                "size", new TypedList(new LinkedList(), Expr.class, false), new TypedList(new LinkedList(), TypeNode.class, false)));
+
+	      List forLoopUpd = new TypedList(new LinkedList(), Eval.class, false);
+              forLoopUpd.add(parser.nf.Eval(parser.pos(a), parser.nf.Unary(parser.pos(a), Unary.POST_INC, forLoopVarExpr)));
+
+	      Stmt quantExprStmt = parser.nf.Eval(parser.pos(a), quantExpr);	     
+
+	      forLoop = parser.nf.For(parser.pos(a), 
+	                                forLoopInit, 
+					forLoopCond, 
+					forLoopUpd, 
+					parser.nf.Block(parser.pos(a), quantExprStmt));
+	      l.addAll(quantListVarD);
+	      l.add(forLoop);
+	      l.add(parser.nf.JL5Return(parser.pos(a), parser.nf.BooleanLit(parser.pos(a),
+                                        	        true)));
+	      
+
+	      RESULT = l;
+	   :}
 	   ;
 
 pred_statement_expression ::=
@@ -110,5 +124,9 @@ pred_statement_expression ::=
 
 pred_expression ::=
         ALL:a name:b COLON:c primary_no_new_array:d OR:e conditional_expression:f
-       	   {: RESULT = f; :}
+       	   {: List l = new TypedList(new LinkedList(), Expr.class, false);
+              l.add(d);
+	      l.add(f);
+              RESULT = l;
+           :} 
 	   ;       
