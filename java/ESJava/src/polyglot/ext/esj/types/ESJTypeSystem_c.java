@@ -14,5 +14,24 @@ public class ESJTypeSystem_c extends JL5TypeSystem_c
     implements ESJTypeSystem {
     // TODO: implement new methods in ESJTypeSystem.
     // TODO: override methods as needed from TypeSystem_c.
+    protected Flags PURE;
+
+    protected void initFlags() {
+        super.initFlags();
+        PURE = createNewFlag("pure",
+                             Public().Private().Protected().Static().Final());
+    }
+
+    public Flags Pure() {
+        return PURE;
+    }
+
+    public boolean canOverride(MethodInstance mi, MethodInstance mj) {
+        // Cannot override pure method with a non-pure method.
+        if (! mi.flags().contains(PURE) && mj.flags().contains(PURE))
+            return false;
+        return super.canOverride(mi, mj);
+    }
+
 }
 

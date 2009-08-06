@@ -9,6 +9,7 @@ import java.util.*;
 import polyglot.ext.jl5.ast.*;
 import polyglot.ext.jl5.types.FlagAnnotations;
 
+
 /**
  * NodeFactory for esj extension.
  */
@@ -18,5 +19,7 @@ public class ESJNodeFactory_c extends JL5NodeFactory_c
     // TODO:  Implement factory methods for new AST nodes.
     // TODO:  Override factory methods for overriden AST nodes.
     // TODO:  Override factory methods for AST nodes with new extension nodes.
-        
+    public ESJQuantifyExpr ESJQuantifyExpr(Position pos, int quantKind, String quantVar, Expr quantListExpr, Expr quantClauseExpr) {
+	return new ESJQuantifyExpr_c(pos, quantKind, quantVar, quantListExpr, quantClauseExpr);
+    }
 }

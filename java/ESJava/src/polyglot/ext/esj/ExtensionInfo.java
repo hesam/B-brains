@@ -5,6 +5,8 @@ import polyglot.ext.esj.parse.Lexer_c;
 import polyglot.ext.esj.parse.Grm;
 import polyglot.ext.esj.ast.ESJNodeFactory_c;
 import polyglot.ext.esj.types.ESJTypeSystem_c;
+import polyglot.ext.esj.visit.*;
+
 
 import polyglot.ast.*;
 import polyglot.types.*;
@@ -47,31 +49,42 @@ public class ExtensionInfo extends polyglot.ext.jl5.ExtensionInfo {
         return new ESJTypeSystem_c();
     }
 
-    public static final Pass.ID PREDICATE_POLARITY =
-    new Pass.ID("predicate-polarity");
-
     public static final Pass.ID PURITY_CHECK =
     new Pass.ID("check-purity");
-
-    public static final Pass.ID CANONICALIZE_PREDICATES =
-    new Pass.ID("canonicalize-predicates");
-
-    public static final Pass.ID CREATE_PREDICATE_TYPES =
-    new Pass.ID("create-predicate-types");
-
-    public static final Pass.ID CREATE_PREDICATE_TYPES_ALL =
-    new Pass.ID("create-predicate-types-barrier");
-    
-    public static final Pass.ID EXTRACT_BINDINGS =
-    new Pass.ID("extract-bindings");
-
-    public static final Pass.ID BUILD_DISPATCHERS =
-    new Pass.ID("build-dispatchers");
 
     public static final Pass.ID IMPLEMENTATION_SIDE_TYPE_CHECK =
     new Pass.ID("implementation-side-type-check");
     
     public static final Pass.ID TRANSLATE_ESJ =
     new Pass.ID("translate-esj");
+
+    public static final Pass.ID TESTING_ESJ =
+    new Pass.ID("testing-esj");
+
+    public List passes(Job job) {
+        List passes = super.passes(job);
+
+	// make sure that pure methods are actually pure, and that
+	// only pure methods are called inside predicates
+	afterPass(passes, polyglot.ext.jl5.ExtensionInfo.TYPE_CHECK_ALL,
+		  new VisitorPass(PURITY_CHECK, job,
+				  new PurityChecker(job, ts, nf)));
+
+	removePass(passes, Pass.REACH_CHECK); //FIXME
+
+	// now translate ESJ AST to Java AST
+	beforePass(passes, Pass.PRE_OUTPUT_ALL,
+		   new VisitorPass(TRANSLATE_ESJ, job,
+				   new ESJTranslator(job, ts, nf)));
+	
+
+	beforePass(passes,  Pass.EXC_CHECK,
+		   new VisitorPass(TESTING_ESJ, job,
+				   new ESJTesting(job, ts, nf)));
+
+	removePass(passes, Pass.EXC_CHECK); //FIXME
+
+        return passes;
+    }
 
 }

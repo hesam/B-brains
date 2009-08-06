@@ -30,7 +30,9 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
         nf = (ESJNodeFactory) n;
     }
 
-    public List BuildPredMethodDecl (PredMethodDecl a) throws Exception {
+    /*
+    public ESJPredMethodStmt MakePredMethodStmt (ESJQuantifyExpr a) throws Exception {
+
     	      int quantKind = a.quantKind();
 	      String quantVarN = a.quantVar();
 	      Expr quantList = a.quantListExpr;
@@ -86,6 +88,7 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
 	      l.add(nf.JL5Return(null, nf.BooleanLit(null, true)));
 	      return l;
         }
+*/
 
 
 :}
@@ -336,8 +339,8 @@ terminal Token ALL;
 non terminal MethodDecl pred_method_declaration, pred_method_header;
 non terminal Block pred_method_body, pred_block;
 non terminal List pred_block_statements;
-non terminal List pred_statement;
-non terminal PredMethodDecl pred_statement_expression, pred_expression;
+non terminal Return pred_statement;
+non terminal ESJQuantifyExpr pred_statement_expression, pred_expression;
 
 
 start with goal;
@@ -3075,7 +3078,7 @@ default_value_opt ::=
 
 pred_method_declaration ::=
     pred_method_header:a pred_method_body:b {:
-                                            RESULT = (MethodDecl) a.body(b); 
+                                            System.out.println(b); RESULT = (MethodDecl) a.body(b); 
                                             :};
 
 pred_method_header ::=
@@ -3090,11 +3093,16 @@ pred_block ::=
                                               :};
 
 pred_block_statements ::=
-    pred_statement:a {:  RESULT = a;  :};
+    pred_statement:a {:
+                     List l = new TypedList(new LinkedList(), Stmt.class, false);
+              l.add(a);
+              RESULT = l; 
+	   
+                     :};
 
 pred_statement ::=
     pred_statement_expression:a {:
-                                RESULT = parser.BuildPredMethodDecl(a); 
+                                RESULT = parser.nf.JL5Return(parser.pos(a), a); 
                                 :};
 
 pred_statement_expression ::=
@@ -3102,7 +3110,7 @@ pred_statement_expression ::=
 
 pred_expression ::=
     ALL:a name:b COLON:c primary_no_new_array:d OR:e conditional_expression:f {:
-                                                                              RESULT = new PredMethodDecl(0,b.toString(),d,f); 
+                                                                              RESULT = parser.nf.ESJQuantifyExpr(parser.pos(a),0,b.toString(),d,f); 
                                                                               :};
 
 

@@ -9,5 +9,6 @@ import java.util.*;
 import polyglot.ext.jl5.types.JL5TypeSystem;
 
 public interface ESJTypeSystem extends JL5TypeSystem  {
+    public Flags Pure();
 }
 
