@@ -1,0 +1,146 @@
+include "../../jl5/parse/jl5_ppg.cup"
+
+package polyglot.ext.esj.parse;
+
+import java.util.*;
+
+import polyglot.ext.esj.types.ESJTypeSystem;
+import polyglot.ext.esj.ast.*;
+import polyglot.ext.jl5.ast.*;
+import polyglot.ext.jl5.parse.*;
+
+parser Grm extends polyglot.ext.jl5.parse.Grm {:
+    public final ESJTypeSystem ts;
+    public final ESJNodeFactory nf;
+
+    public Grm(Lexer l, TypeSystem t, NodeFactory n, ErrorQueue q) {
+        super(l, t, n, q);
+        ts = (ESJTypeSystem) t;
+        nf = (ESJNodeFactory) n;
+    }
+
+    /*
+    public ESJPredMethodStmt MakePredMethodStmt (ESJPredMethodExpr a) throws Exception {
+
+    	      int quantKind = a.quantKind();
+	      String quantVarN = a.quantVar();
+	      Expr quantList = a.quantListExpr;
+	      Expr quantExpr = a.quantClauseExpr;
+	      List l = new TypedList(new LinkedList(), Stmt.class, false);
+	      
+	      FlagAnnotations fl = new FlagAnnotations(); 
+              fl.classicFlags(Flags.NONE);
+              fl.annotations(new TypedList(new LinkedList(), AnnotationElem.class, false));
+	      VarDeclarator quantListVar = new VarDeclarator(null, "quantList");
+	      Expr quantListVarExpr = new JL5Name(this, null, "quantList").toExpr();
+	      quantListVar.init = quantList;   
+	      List arraylistSubTp = new TypedList(new LinkedList(), TypeNode.class, false);
+	      TypeNode arraylistTp = new JL5Name(this, null, "ArrayList").toType();
+	      arraylistSubTp.add(new JL5Name(this, null, "Integer").toType());
+              List quantListVarD = this.variableDeclarators(nf.JL5AmbTypeNode(null, ((AmbTypeNode)arraylistTp).qual(), ((AmbTypeNode)arraylistTp).name(), arraylistSubTp), quantListVar, fl); 
+	      Stmt forLoop;
+	      VarDeclarator itrForLoopVar =  new VarDeclarator(null, "i");
+	      Expr itrForLoopVarExpr = new JL5Name(this, null, "i").toExpr();
+
+	      itrForLoopVar.init = nf.IntLit(null, IntLit.INT, 0);
+              List itrForLoopVarD = this.variableDeclarators(nf.CanonicalTypeNode(null, this.ts.Int()), itrForLoopVar, fl); 
+
+              List forLoopInit = new TypedList(new LinkedList(), ForInit.class, false);
+              forLoopInit.addAll(itrForLoopVarD);
+
+
+	      Expr forLoopCond = nf.Binary(this.pos(a, a), 
+	       	    		                   itrForLoopVarExpr, 
+						   Binary.LT, 
+						   nf.JL5Call(null, quantListVarExpr,
+                "size", new TypedList(new LinkedList(), Expr.class, false), new TypedList(new LinkedList(), TypeNode.class, false)));
+
+	      List forLoopUpd = new TypedList(new LinkedList(), Eval.class, false);
+              forLoopUpd.add(nf.Eval(null, nf.Unary(null, Unary.POST_INC, itrForLoopVarExpr)));
+	      List quantClauseStmts = new TypedList(new LinkedList(), Stmt.class, false);
+
+	      VarDeclarator quantVar = new VarDeclarator(null, quantVarN);
+	      List getCallOpts = new TypedList(new LinkedList(), Expr.class, false);
+              getCallOpts.add(itrForLoopVarExpr);
+	      quantVar.init = nf.JL5Call(null,
+	      		        nf.JL5Call(null, quantListVarExpr, "get", getCallOpts, new TypedList(new LinkedList(), TypeNode.class, false)),
+				"intValue", new TypedList(new LinkedList(), Expr.class, false), new TypedList(new LinkedList(), TypeNode.class, false));   
+	      List quantVarD = this.variableDeclarators(nf.CanonicalTypeNode(null, this.ts.Int()), quantVar, fl);
+	      quantClauseStmts.addAll(quantVarD);
+	      
+	      quantClauseStmts.add(nf.JL5If(null, nf.Unary(null, Unary.NOT, quantExpr), 
+	          nf.JL5Return(null, nf.BooleanLit(null, false)), null));	    
+	      Stmt forLoopBody = nf.Block(null, quantClauseStmts);
+	      forLoop = nf.For(null, forLoopInit, forLoopCond, forLoopUpd, forLoopBody);
+	      l.addAll(quantListVarD);
+	      l.add(forLoop);
+	      l.add(nf.JL5Return(null, nf.BooleanLit(null, true)));
+	      return l;
+        }
+*/
+
+:};
+
+terminal Token PREDICATE;
+terminal Token SOME;
+terminal Token ALL;
+
+non terminal MethodDecl pred_method_declaration, pred_method_header;
+non terminal Block pred_method_body, pred_block;
+non terminal List pred_block_statements;
+non terminal Return pred_statement;
+non terminal ESJPredMethodExpr pred_statement_expression, pred_expression;
+start with goal;
+
+// Here begins the ESJ grammar extensions and modifications
+
+extend class_member_declaration ::=
+        pred_method_declaration:a {:
+           List l = new TypedList(new LinkedList(), ClassMember.class, false);
+           l.add(a);
+           RESULT = l; 
+	   :}
+	   ;
+
+pred_method_declaration ::=
+        pred_method_header:a pred_method_body:b 
+	   {: System.out.println(b); RESULT = (MethodDecl) a.body(b); :}
+	   ;
+
+pred_method_header ::=
+        PREDICATE:a method_header:b
+       	   {: RESULT = b; :}
+	   ;
+
+pred_method_body ::=
+        pred_block:a 
+	   {:  RESULT = a;  :}
+	   ;
+
+pred_block ::=
+    LBRACE:n pred_block_statements:a RBRACE:d 
+           {: RESULT = parser.nf.Block(parser.pos(n, d), a); :}
+	   ;
+
+pred_block_statements ::= 
+    pred_statement:a
+           {: List l = new TypedList(new LinkedList(), Stmt.class, false);
+              l.add(a);
+              RESULT = l; 
+	   :}
+	   ;
+
+pred_statement ::=
+    pred_statement_expression:a 
+	   {: RESULT = parser.nf.JL5Return(parser.pos(a), a); :}
+	   ;
+
+pred_statement_expression ::=
+    pred_expression:a 
+           {:  RESULT = a;  :}
+    	   ;
+
+pred_expression ::=
+        ALL:a name:b COLON:c primary_no_new_array:d OR:e conditional_expression:f
+       	   {: RESULT = parser.nf.ESJPredMethodExpr(parser.pos(a),0,b.toString(),d,f); :} 
+	   ;       

@@ -1,0 +1,46 @@
+package polyglot.ext.esj.visit;
+
+import polyglot.visit.*;
+import polyglot.ast.*;
+import polyglot.ext.jl.ast.*;
+import polyglot.ext.esj.ast.*;
+import polyglot.types.*;
+import polyglot.ext.esj.types.*;
+import polyglot.ext.jl5.types.*;
+import polyglot.util.*;
+
+import polyglot.frontend.Job;
+
+//import polyglot.ext.esj.util.toJavaExpr;
+
+import java.util.*;
+
+/** Visitor that translates ESJ AST nodes to Java AST nodes, for
+    subsequent output. **/
+public class ESJTranslator extends ContextVisitor {
+
+	// String for mangling the name of each dispatchee method
+    protected static String dispatcheeStr = "$body";
+
+	// String for making the formal names of the dispatcher method
+    public static String argStr = "arg$";
+    
+    public ESJTranslator(Job job, TypeSystem ts, NodeFactory nf) {
+	super(job, ts, nf);
+	System.out.println("init Translating...");
+    }
+
+    protected Node clearPureFlag(MethodDecl md) {
+      return md.flags(md.flags().clear(((ESJTypeSystem)typeSystem()).Pure()));
+    }
+
+    protected Node leaveCall(Node n) throws SemanticException {
+	System.out.println("Translating..." + n);
+	if (n instanceof ESJQuantifyExpr) {
+	    return super.leaveCall(nf.BooleanLit(null, false));
+	} else
+	    return super.leaveCall(n);
+    }
+
+}
+
