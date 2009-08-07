@@ -14,5 +14,7 @@ import polyglot.ext.jl5.types.FlagAnnotations;
  */
 public interface ESJNodeFactory extends JL5NodeFactory {
     // TODO: Declare any factory methods for new AST nodes.
+    ESJPredMethodDecl ESJPredMethodDecl(Position pos, FlagAnnotations flags, TypeNode returnType, String name, List formals, List throwTypes, Block body);
+
     ESJQuantifyExpr ESJQuantifyExpr(Position pos, int quantKind, String quantVar, Expr quantListExpr, Expr quantClauseExpr);
 }

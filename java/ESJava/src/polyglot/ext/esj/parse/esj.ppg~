@@ -20,7 +20,7 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
     }
 
     /*
-    public ESJPredMethodStmt MakePredMethodStmt (ESJPredMethodExpr a) throws Exception {
+    public ESJPredMethodStmt MakePredMethodStmt (ESJQuantifyExpr a) throws Exception {
 
     	      int quantKind = a.quantKind();
 	      String quantVarN = a.quantVar();
@@ -85,11 +85,11 @@ terminal Token PREDICATE;
 terminal Token SOME;
 terminal Token ALL;
 
-non terminal MethodDecl pred_method_declaration, pred_method_header;
+non terminal ESJMethodDecl pred_method_declaration, pred_method_header;
 non terminal Block pred_method_body, pred_block;
 non terminal List pred_block_statements;
 non terminal Return pred_statement;
-non terminal ESJPredMethodExpr pred_statement_expression, pred_expression;
+non terminal ESJQuantifyExpr pred_statement_expression, pred_expression;
 start with goal;
 
 // Here begins the ESJ grammar extensions and modifications
@@ -142,5 +142,5 @@ pred_statement_expression ::=
 
 pred_expression ::=
         ALL:a name:b COLON:c primary_no_new_array:d OR:e conditional_expression:f
-       	   {: RESULT = parser.nf.ESJPredMethodExpr(parser.pos(a),0,b.toString(),d,f); :} 
+       	   {: RESULT = parser.nf.ESJQuantifyExpr(parser.pos(a),0,b.toString(),d,f); :} 
 	   ;       

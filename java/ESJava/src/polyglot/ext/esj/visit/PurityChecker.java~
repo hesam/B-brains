@@ -19,6 +19,7 @@ public class PurityChecker extends ContextVisitor {
     public PurityChecker(Job job, TypeSystem ts, NodeFactory nf) {
 	super(job, ts, nf);
         insidePredicate = false;
+	System.out.println("in purity checking...");
     }
 
     protected boolean insidePureMethod() {

@@ -12,13 +12,15 @@ import polyglot.visit.*;
 // A temporary class used for passing an ordered dispatch method declaration.
 public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
 
-    protected Expr quantListExpr;
-    protected ESJQuantifyClauseExpr quantClauseExpr;
+    protected static int id = 0;
     protected int quantKind;
     protected String quantVar;
+    protected Expr quantListExpr;
+    protected ESJQuantifyClauseExpr quantClauseExpr;
 
     public ESJQuantifyExpr_c(Position pos, int quantKind, String quantVar, Expr quantListExpr, Expr quantClauseExpr) {
 	super(pos);
+	this.id = id++;
 	this.quantKind = quantKind;
 	this.quantVar = quantVar;
 	this.quantListExpr = quantListExpr;
@@ -31,6 +33,10 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
 
     public ESJQuantifyClauseExpr quantClauseExpr() {
 	return quantClauseExpr;
+    }
+
+    public int id() {
+	return id;
     }
 
     public int quantKind() {

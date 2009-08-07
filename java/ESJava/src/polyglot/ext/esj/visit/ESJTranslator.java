@@ -27,17 +27,18 @@ public class ESJTranslator extends ContextVisitor {
     
     public ESJTranslator(Job job, TypeSystem ts, NodeFactory nf) {
 	super(job, ts, nf);
-	System.out.println("init Translating...");
+	//System.out.println("init Translating...");
     }
 
-    public Expr DesugarQuantifyExpr (ESJQuantifyExpr a) {
+    public Expr DesugarQuantifyExpr (ESJQuantifyExpr a)  {
 
-	System.out.println("desuaring begin...");
+	//System.out.println("desuaring begin...");
     	      int quantKind = a.quantKind();
+	      int quantId = a.id();
 	      String quantVarN = a.quantVar();
 	      Expr quantList = a.quantListExpr();
 	      ESJQuantifyClauseExpr quantExpr = a.quantClauseExpr();
-	      return nf.BooleanLit(null, false);
+	      return nf.Call(null,null,"univQuant"+quantId, new TypedList(new LinkedList(), Expr.class, false));
 	      /*
 	      List l = new TypedList(new LinkedList(), Stmt.class, false);
 	      
@@ -100,7 +101,6 @@ public class ESJTranslator extends ContextVisitor {
 
     protected Node leaveCall(Node n) throws SemanticException {
 	if (n instanceof ESJQuantifyExpr) {
-	    //return super.leaveCall(nf.BooleanLit(null, false));
 	    return super.leaveCall(DesugarQuantifyExpr((ESJQuantifyExpr)n));
 	} else
 	    return super.leaveCall(n);

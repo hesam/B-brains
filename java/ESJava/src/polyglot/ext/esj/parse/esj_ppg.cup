@@ -30,13 +30,20 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
         nf = (ESJNodeFactory) n;
     }
 
-    /*
-    public ESJPredMethodStmt MakePredMethodStmt (ESJQuantifyExpr a) throws Exception {
-
+    public List<MethodDecl> defineESJExtraMethods(ESJPredMethodDecl methodDecl) throws Exception {
+              List<MethodDecl> extraMtds = new TypedList(new LinkedList(), ClassMember.class, false);
+    	      ESJQuantifyExpr a = (ESJQuantifyExpr)((Return)(methodDecl.body().statements().get(0))).expr();
+	      System.out.println(a);
+    	      int quantId = a.id();
     	      int quantKind = a.quantKind();
 	      String quantVarN = a.quantVar();
-	      Expr quantList = a.quantListExpr;
-	      Expr quantExpr = a.quantClauseExpr;
+	      Expr quantList = a.quantListExpr();
+	      Expr quantExpr = a.quantClauseExpr();
+	      System.out.println(quantId);
+	      System.out.println(quantKind);
+	      System.out.println(quantList);
+	      System.out.println(quantExpr);
+
 	      List l = new TypedList(new LinkedList(), Stmt.class, false);
 	      
 	      FlagAnnotations fl = new FlagAnnotations(); 
@@ -86,9 +93,11 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
 	      l.addAll(quantListVarD);
 	      l.add(forLoop);
 	      l.add(nf.JL5Return(null, nf.BooleanLit(null, true)));
-	      return l;
-        }
-*/
+	      Block quantMtdBlock = nf.Block(null, l);
+
+	      return extraMtds;
+    }
+
 
 
 :}
@@ -336,7 +345,8 @@ non terminal List element_values;
 terminal Token PREDICATE;
 terminal Token SOME;
 terminal Token ALL;
-non terminal MethodDecl pred_method_declaration, pred_method_header;
+non terminal ESJPredMethodDecl pred_method_header;
+non terminal List pred_method_declaration;
 non terminal Block pred_method_body, pred_block;
 non terminal List pred_block_statements;
 non terminal Return pred_statement;
@@ -772,13 +782,7 @@ class_member_declaration ::=
        RESULT = l; 
                        
                        :}
- |  pred_method_declaration:a {:
-                             
-           List l = new TypedList(new LinkedList(), ClassMember.class, false);
-           l.add(a);
-           RESULT = l; 
-	   
-                              :};
+ |  pred_method_declaration:a {:  RESULT = a;  :};
 
 field_declaration ::=
     modifiers_or_annotations_opt:a type:b variable_declarators:c SEMICOLON:e {:
@@ -3078,11 +3082,28 @@ default_value_opt ::=
 
 pred_method_declaration ::=
     pred_method_header:a pred_method_body:b {:
-                                            System.out.println(b); RESULT = (MethodDecl) a.body(b); 
+                                            System.out.println(b); 
+	      ESJPredMethodDecl mainMtdDecl = (ESJPredMethodDecl) a.body(b); 
+              List l = new TypedList(new LinkedList(), ClassMember.class, false);
+              l.add(mainMtdDecl);
+	      l.addAll(parser.defineESJExtraMethods(mainMtdDecl));
+              RESULT = l; 
+	   
                                             :};
 
 pred_method_header ::=
-    PREDICATE:a method_header:b {:  RESULT = b;  :};
+    PREDICATE:z modifiers_or_annotations_opt:a type:b IDENTIFIER:c LPAREN formal_parameter_list_opt:d RPAREN:g dims_opt:e throws_opt:f {:
+                                                                                                                                       RESULT = parser.nf.ESJPredMethodDecl(parser.pos(b, g, c), a,
+               parser.array(b, e.intValue()), c.getIdentifier(),
+               d, f, null); 
+            
+                                                                                                                                       :}
+ |  PREDICATE:z modifiers_or_annotations_opt:a VOID:b IDENTIFIER:c LPAREN formal_parameter_list_opt:d RPAREN:g throws_opt:f {:
+                                                                                                                            RESULT = parser.nf.ESJPredMethodDecl(parser.pos(b, g, c), a,
+               parser.nf.CanonicalTypeNode(parser.pos(b),
+               parser.ts.Void()), c.getIdentifier(), d, f, null); 
+	    
+                                                                                                                            :};
 
 pred_method_body ::=
     pred_block:a {:   RESULT = a;   :};
