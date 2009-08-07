@@ -12,15 +12,15 @@ import polyglot.visit.*;
 // A temporary class used for passing an ordered dispatch method declaration.
 public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
 
-    protected static int id = 0;
-    protected int quantKind;
-    protected String quantVar;
+    protected static int idCtr = 0;
+    protected boolean quantKind;
+    protected String id,quantVar;
     protected Expr quantListExpr;
     protected ESJQuantifyClauseExpr quantClauseExpr;
 
-    public ESJQuantifyExpr_c(Position pos, int quantKind, String quantVar, Expr quantListExpr, Expr quantClauseExpr) {
+    public ESJQuantifyExpr_c(Position pos, boolean quantKind, String quantVar, Expr quantListExpr, Expr quantClauseExpr) {
 	super(pos);
-	this.id = id++;
+	this.id = (quantKind ? "univQuantify_": "existQuantify_") + Integer.toString(idCtr++);
 	this.quantKind = quantKind;
 	this.quantVar = quantVar;
 	this.quantListExpr = quantListExpr;
@@ -35,11 +35,11 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
 	return quantClauseExpr;
     }
 
-    public int id() {
+    public String id() {
 	return id;
     }
 
-    public int quantKind() {
+    public boolean quantKind() {
 	return quantKind;
     }
 
@@ -56,7 +56,7 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
     }
 
     /** Reconstruct the pred expr. */
-    protected ESJQuantifyExpr_c reconstruct(int quantKind, String quantVar, Expr quantListExpr, ESJQuantifyClauseExpr quantClauseExpr) {
+    protected ESJQuantifyExpr_c reconstruct(boolean quantKind, String quantVar, Expr quantListExpr, ESJQuantifyClauseExpr quantClauseExpr) {
 	return this;
     }
 

@@ -23,7 +23,7 @@ public class ESJNodeFactory_c extends JL5NodeFactory_c
     	return new ESJPredMethodDecl_c(pos, flags, returnType, name, formals, throwTypes, body);
     }
 
-    public ESJQuantifyExpr ESJQuantifyExpr(Position pos, int quantKind, String quantVar, Expr quantListExpr, Expr quantClauseExpr) {
+    public ESJQuantifyExpr ESJQuantifyExpr(Position pos, boolean quantKind, String quantVar, Expr quantListExpr, Expr quantClauseExpr) {
 	return new ESJQuantifyExpr_c(pos, quantKind, quantVar, quantListExpr, quantClauseExpr);
     }
 }

@@ -33,12 +33,12 @@ public class ESJTranslator extends ContextVisitor {
     public Expr DesugarQuantifyExpr (ESJQuantifyExpr a)  {
 
 	//System.out.println("desuaring begin...");
-    	      int quantKind = a.quantKind();
-	      int quantId = a.id();
+    	      boolean quantKind = a.quantKind();
+	      String quantId = a.id();
 	      String quantVarN = a.quantVar();
 	      Expr quantList = a.quantListExpr();
 	      ESJQuantifyClauseExpr quantExpr = a.quantClauseExpr();
-	      return nf.Call(null,null,"univQuant"+quantId, new TypedList(new LinkedList(), Expr.class, false));
+	      return nf.Call(null,null,quantId, new TypedList(new LinkedList(), Expr.class, false));
 	      /*
 	      List l = new TypedList(new LinkedList(), Stmt.class, false);
 	      

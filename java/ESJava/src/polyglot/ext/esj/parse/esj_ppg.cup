@@ -30,21 +30,21 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
         nf = (ESJNodeFactory) n;
     }
 
-    public List<MethodDecl> defineESJExtraMethods(ESJPredMethodDecl methodDecl) throws Exception {
-              List<MethodDecl> extraMtds = new TypedList(new LinkedList(), ClassMember.class, false);
+    public List<JL5MethodDecl> defineESJExtraMethods(ESJPredMethodDecl methodDecl) throws Exception {
+              List<JL5MethodDecl> extraMtds = new TypedList(new LinkedList(), ClassMember.class, false);
     	      ESJQuantifyExpr a = (ESJQuantifyExpr)((Return)(methodDecl.body().statements().get(0))).expr();
 	      System.out.println(a);
-    	      int quantId = a.id();
-    	      int quantKind = a.quantKind();
+    	      String quantMtdId = a.id();
+    	      boolean quantKind = a.quantKind();
 	      String quantVarN = a.quantVar();
 	      Expr quantList = a.quantListExpr();
-	      Expr quantExpr = a.quantClauseExpr();
-	      System.out.println(quantId);
+	      Expr quantExpr = a.quantClauseExpr().expr();
+	      System.out.println(quantMtdId);
 	      System.out.println(quantKind);
 	      System.out.println(quantList);
 	      System.out.println(quantExpr);
 
-	      List l = new TypedList(new LinkedList(), Stmt.class, false);
+	      List extraMtdBody = new TypedList(new LinkedList(), Stmt.class, false);
 	      
 	      FlagAnnotations fl = new FlagAnnotations(); 
               fl.classicFlags(Flags.NONE);
@@ -90,11 +90,18 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
 	          nf.JL5Return(null, nf.BooleanLit(null, false)), null));	    
 	      Stmt forLoopBody = nf.Block(null, quantClauseStmts);
 	      forLoop = nf.For(null, forLoopInit, forLoopCond, forLoopUpd, forLoopBody);
-	      l.addAll(quantListVarD);
-	      l.add(forLoop);
-	      l.add(nf.JL5Return(null, nf.BooleanLit(null, true)));
-	      Block quantMtdBlock = nf.Block(null, l);
-
+	      extraMtdBody.addAll(quantListVarD);
+	      extraMtdBody.add(forLoop);
+	      extraMtdBody.add(nf.JL5Return(null, nf.BooleanLit(null, true)));
+	      Block extraMtdBlock = nf.Block(null, extraMtdBody);
+	      JL5MethodDecl extraMtd = nf.JL5MethodDecl(null, fl,
+	                                          nf.CanonicalTypeNode(null,ts.Boolean()), 
+						  quantMtdId, 
+						  new TypedList(new LinkedList(), Formal.class, false), 
+						  new TypedList(new LinkedList(), TypeNode.class, false), 
+						  extraMtdBlock,
+						  new TypedList(new LinkedList(), TypeNode.class, false));
+              extraMtds.add(extraMtd);
 	      return extraMtds;
     }
 
@@ -3131,7 +3138,10 @@ pred_statement_expression ::=
 
 pred_expression ::=
     ALL:a name:b COLON:c primary_no_new_array:d OR:e conditional_expression:f {:
-                                                                              RESULT = parser.nf.ESJQuantifyExpr(parser.pos(a),0,b.toString(),d,f); 
-                                                                              :};
+                                                                              RESULT = parser.nf.ESJQuantifyExpr(parser.pos(a),true,b.toString(),d,f); 
+                                                                              :}
+ |  SOME:a name:b COLON:c primary_no_new_array:d OR:e conditional_expression:f {:
+                                                                               RESULT = parser.nf.ESJQuantifyExpr(parser.pos(a),false,b.toString(),d,f); 
+                                                                               :};
 
 
