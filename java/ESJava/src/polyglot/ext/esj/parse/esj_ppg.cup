@@ -30,6 +30,8 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
         nf = (ESJNodeFactory) n;
     }
 
+    // define separate methods for each universal/existential expressions
+    // also define relational-logic counterparts, to be used by external solvers...
     public List<JL5MethodDecl> defineESJExtraMethods(ESJPredMethodDecl methodDecl) throws Exception {
               List<JL5MethodDecl> extraMtds = new TypedList(new LinkedList(), ClassMember.class, false);
     	      ESJQuantifyExpr a = (ESJQuantifyExpr)((Return)(methodDecl.body().statements().get(0))).expr();
@@ -49,48 +51,14 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
 	      FlagAnnotations fl = new FlagAnnotations(); 
               fl.classicFlags(Flags.NONE);
               fl.annotations(new TypedList(new LinkedList(), AnnotationElem.class, false));
-	      VarDeclarator quantListVar = new VarDeclarator(null, "quantList");
-	      Expr quantListVarExpr = new JL5Name(this, null, "quantList").toExpr();
-	      quantListVar.init = quantList;   
-	      List arraylistSubTp = new TypedList(new LinkedList(), TypeNode.class, false);
-	      TypeNode arraylistTp = new JL5Name(this, null, "ArrayList").toType();
-	      arraylistSubTp.add(new JL5Name(this, null, "Integer").toType());
-              List quantListVarD = this.variableDeclarators(nf.JL5AmbTypeNode(null, ((AmbTypeNode)arraylistTp).qual(), ((AmbTypeNode)arraylistTp).name(), arraylistSubTp), quantListVar, fl); 
-	      Stmt forLoop;
-	      VarDeclarator itrForLoopVar =  new VarDeclarator(null, "i");
-	      Expr itrForLoopVarExpr = new JL5Name(this, null, "i").toExpr();
-
-	      itrForLoopVar.init = nf.IntLit(null, IntLit.INT, 0);
-              List itrForLoopVarD = this.variableDeclarators(nf.CanonicalTypeNode(null, this.ts.Int()), itrForLoopVar, fl); 
-
-              List forLoopInit = new TypedList(new LinkedList(), ForInit.class, false);
-              forLoopInit.addAll(itrForLoopVarD);
-
-
-	      Expr forLoopCond = nf.Binary(this.pos(a, a), 
-	       	    		                   itrForLoopVarExpr, 
-						   Binary.LT, 
-						   nf.JL5Call(null, quantListVarExpr,
-                "size", new TypedList(new LinkedList(), Expr.class, false), new TypedList(new LinkedList(), TypeNode.class, false)));
-
-	      List forLoopUpd = new TypedList(new LinkedList(), Eval.class, false);
-              forLoopUpd.add(nf.Eval(null, nf.Unary(null, Unary.POST_INC, itrForLoopVarExpr)));
 	      List quantClauseStmts = new TypedList(new LinkedList(), Stmt.class, false);
-
 	      VarDeclarator quantVar = new VarDeclarator(null, quantVarN);
-	      List getCallOpts = new TypedList(new LinkedList(), Expr.class, false);
-              getCallOpts.add(itrForLoopVarExpr);
-	      quantVar.init = nf.JL5Call(null,
-	      		        nf.JL5Call(null, quantListVarExpr, "get", getCallOpts, new TypedList(new LinkedList(), TypeNode.class, false)),
-				"intValue", new TypedList(new LinkedList(), Expr.class, false), new TypedList(new LinkedList(), TypeNode.class, false));   
 	      List quantVarD = this.variableDeclarators(nf.CanonicalTypeNode(null, this.ts.Int()), quantVar, fl);
-	      quantClauseStmts.addAll(quantVarD);
-	      
-	      quantClauseStmts.add(nf.JL5If(null, nf.Unary(null, Unary.NOT, quantExpr), 
-	          nf.JL5Return(null, nf.BooleanLit(null, false)), null));	    
+	      Stmt quantMainStmt = nf.JL5If(null, nf.Unary(null, Unary.NOT, quantExpr), 
+	          nf.JL5Return(null, nf.BooleanLit(null, false)), null);
+	      quantClauseStmts.add(quantMainStmt);	    
 	      Stmt forLoopBody = nf.Block(null, quantClauseStmts);
-	      forLoop = nf.For(null, forLoopInit, forLoopCond, forLoopUpd, forLoopBody);
-	      extraMtdBody.addAll(quantListVarD);
+	      Stmt forLoop = nf.ExtendedFor(null,quantVarD, quantList, quantMainStmt);
 	      extraMtdBody.add(forLoop);
 	      extraMtdBody.add(nf.JL5Return(null, nf.BooleanLit(null, true)));
 	      Block extraMtdBlock = nf.Block(null, extraMtdBody);
