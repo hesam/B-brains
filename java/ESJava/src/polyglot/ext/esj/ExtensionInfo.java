@@ -76,11 +76,12 @@ public class ExtensionInfo extends polyglot.ext.jl5.ExtensionInfo {
 	beforePass(passes, Pass.PRE_OUTPUT_ALL,
 		   new VisitorPass(TRANSLATE_ESJ, job,
 				   new ESJTranslator(job, ts, nf)));
-	
 
-	beforePass(passes,  Pass.EXC_CHECK,
+	beforePass(passes, TRANSLATE_ESJ,
 		   new VisitorPass(TESTING_ESJ, job,
 				   new ESJTesting(job, ts, nf)));
+	
+
 
 	removePass(passes, Pass.EXC_CHECK); //FIXME
 

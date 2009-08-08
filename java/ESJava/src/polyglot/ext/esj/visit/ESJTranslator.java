@@ -3,6 +3,7 @@ package polyglot.ext.esj.visit;
 import polyglot.visit.*;
 import polyglot.ast.*;
 import polyglot.ext.jl.ast.*;
+import polyglot.ext.jl5.ast.*;
 import polyglot.ext.esj.ast.*;
 import polyglot.types.*;
 import polyglot.ext.esj.types.*;
@@ -31,18 +32,20 @@ public class ESJTranslator extends ContextVisitor {
     }
 
     public Expr DesugarQuantifyExpr (ESJQuantifyExpr a)  {
-
-	//System.out.println("desuaring begin...");
 	boolean quantKind = a.quantKind();
-	String quantId = a.id();
+	String quantId = a.parentMethod().name()  + "_" + a.id();
 	String quantVarN = a.quantVar();
 	Expr quantList = a.quantListExpr();
 	ESJQuantifyClauseExpr quantExpr = a.quantClauseExpr();
-	return nf.Call(null,null,quantId, new TypedList(new LinkedList(), Expr.class, false));
+	List args = new TypedList(new LinkedList(), Expr.class, false);
+	for(Formal f : (List<Formal>)(a.parentMethod().formals())) {
+	    args.add(new Local_c(null,f.name()));
+	}
+	return nf.Call(null,null,quantId, args);
     }
 
     public Expr DesugarQuantifyTypeExpr (ESJQuantifyTypeExpr a)  {
-	return nf.Call(null, a, "allInstances",new TypedList(new LinkedList(), Expr.class, false));
+	return nf.Call(null, a.theType(), "allInstances",new TypedList(new LinkedList(), Expr.class, false));
     }
 
     protected Node clearPureFlag(MethodDecl md) {

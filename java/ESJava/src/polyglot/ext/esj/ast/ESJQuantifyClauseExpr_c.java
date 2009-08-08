@@ -51,7 +51,7 @@ public class ESJQuantifyClauseExpr_c extends Expr_c implements ESJQuantifyClause
 
     
     public Node typeCheck(TypeChecker tc) throws SemanticException {
-	System.out.println("ESJQuantifyClauseExpr tc...");
+	//System.out.println("ESJQuantifyClauseExpr tc...");
 	ESJQuantifyClauseExpr n = (ESJQuantifyClauseExpr) super.typeCheck(tc);
 	n = (ESJQuantifyClauseExpr)n.type(tc.typeSystem().Boolean()); //FIXME
 
@@ -62,7 +62,7 @@ public class ESJQuantifyClauseExpr_c extends Expr_c implements ESJQuantifyClause
 				        + "boolean.", position());
 					}*/
 	    // make sure that the restrictions on array accesses are met
-	System.out.println("ESJQuantifyClauseExpr tc done");
+	//System.out.println("ESJQuantifyClauseExpr tc done");
 	return n;
     } 
 

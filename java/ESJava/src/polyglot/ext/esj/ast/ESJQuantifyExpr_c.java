@@ -17,6 +17,7 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
     protected String id,quantVar;
     protected Expr quantListExpr;
     protected ESJQuantifyClauseExpr quantClauseExpr;
+    protected ESJPredMethodDecl parentMethod;
 
     public ESJQuantifyExpr_c(Position pos, boolean quantKind, String quantVar, Expr quantListExpr, Expr quantClauseExpr) {
 	super(pos);
@@ -47,6 +48,14 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
 	return quantVar;
     }
 
+    public ESJPredMethodDecl parentMethod() {
+	return parentMethod;
+    }
+
+    public void parentMethod(ESJPredMethodDecl m) {
+	this.parentMethod = m;
+    }
+
     public List acceptCFG(CFGBuilder v, List succs) {
 	return new ArrayList();
     }
@@ -69,9 +78,10 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
 
     
     public Node typeCheck(TypeChecker tc) throws SemanticException {
-	System.out.println("ESJQuantifyExpr tc...");
 	ESJQuantifyExpr n = (ESJQuantifyExpr) super.typeCheck(tc);
 	n = (ESJQuantifyExpr)n.type(tc.typeSystem().Boolean()); //FIXME
+	/*
+	System.out.println("ESJQuantifyExpr tc...");
 	System.out.println(n);
 	System.out.println(n.type());
 	System.out.println(quantListExpr);
@@ -79,7 +89,7 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
 	System.out.println(quantClauseExpr);
 	//quantClauseExpr = (ESJQuantifyClauseExpr)(quantClauseExpr.typeCheck(tc)); //FIXME
 	System.out.println(quantClauseExpr.type());
-
+	*/
 	/*
 	    // make sure the predicateExpr has type boolean
 	if (!(quantClauseExpr.type().isBoolean())) {
@@ -87,7 +97,7 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
 				        + "boolean.", position());
 					}*/
 	    // make sure that the restrictions on array accesses are met
-	System.out.println("ESJQuantifyExpr tc done");
+	//System.out.println("ESJQuantifyExpr tc done");
 	return n;
     } 
 

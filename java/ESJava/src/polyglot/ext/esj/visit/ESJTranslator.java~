@@ -3,6 +3,7 @@ package polyglot.ext.esj.visit;
 import polyglot.visit.*;
 import polyglot.ast.*;
 import polyglot.ext.jl.ast.*;
+import polyglot.ext.jl5.ast.*;
 import polyglot.ext.esj.ast.*;
 import polyglot.types.*;
 import polyglot.ext.esj.types.*;
@@ -31,8 +32,6 @@ public class ESJTranslator extends ContextVisitor {
     }
 
     public Expr DesugarQuantifyExpr (ESJQuantifyExpr a)  {
-
-	//System.out.println("desuaring begin...");
 	boolean quantKind = a.quantKind();
 	String quantId = a.id();
 	String quantVarN = a.quantVar();
@@ -42,7 +41,7 @@ public class ESJTranslator extends ContextVisitor {
     }
 
     public Expr DesugarQuantifyTypeExpr (ESJQuantifyTypeExpr a)  {
-	return nf.JL5Call(null, a, "allInstances",new TypedList(new LinkedList(), Expr.class, false), new TypedList(new LinkedList(), TypeNode.class, false));
+	return nf.Call(null, a.theType(), "allInstances",new TypedList(new LinkedList(), Expr.class, false));
     }
 
     protected Node clearPureFlag(MethodDecl md) {

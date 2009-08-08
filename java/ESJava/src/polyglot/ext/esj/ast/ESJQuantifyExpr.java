@@ -13,7 +13,8 @@ public interface ESJQuantifyExpr extends Expr {
     public String quantVar();
     public Expr quantListExpr();
     public ESJQuantifyClauseExpr quantClauseExpr();
-
+    public ESJPredMethodDecl parentMethod();
+    public void parentMethod(ESJPredMethodDecl m);
 
 }
 

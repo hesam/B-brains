@@ -27,11 +27,11 @@ public class ESJTesting extends ContextVisitor {
     
     public ESJTesting(Job job, TypeSystem ts, NodeFactory nf) {
 	super(job, ts, nf);
-	System.out.println("init testing...");
+	//System.out.println("init testing...");
     }
 
     protected Node leaveCall(Node n) throws SemanticException {
-	System.out.println(" tesing..." + n);
+	//System.out.println(" tesing..." + n);
 	    return super.leaveCall(n);
     }
 

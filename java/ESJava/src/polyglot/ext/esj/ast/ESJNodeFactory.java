@@ -7,6 +7,7 @@ import polyglot.ext.esj.types.*;
 import polyglot.util.*;
 import java.util.*;
 import polyglot.ext.jl5.ast.*;
+import polyglot.ext.jl5.parse.JL5Name;
 import polyglot.ext.jl5.types.FlagAnnotations;
 
 /**
@@ -18,5 +19,5 @@ public interface ESJNodeFactory extends JL5NodeFactory {
 
     ESJQuantifyExpr ESJQuantifyExpr(Position pos, boolean quantKind, String quantVar, Expr quantListExpr, Expr quantClauseExpr);
 
-    ESJQuantifyTypeExpr ESJQuantifyTypeExpr(Position pos, TypeNode theType);
+    ESJQuantifyTypeExpr ESJQuantifyTypeExpr(Position pos, CanonicalTypeNode theType);
 }
