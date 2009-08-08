@@ -53,6 +53,11 @@ public class ESJTranslator extends ContextVisitor {
     }
 
     protected Node leaveCall(Node n) throws SemanticException {
+	if (n instanceof ESJPredMethodDecl) {
+	    System.out.println("yep");
+	    System.out.println(((ESJPredMethodDecl)n).body());
+	}
+
 	if (n instanceof ESJQuantifyExpr) {
 	    return super.leaveCall(DesugarQuantifyExpr((ESJQuantifyExpr)n));
 	} else if (n instanceof ESJQuantifyTypeExpr) {

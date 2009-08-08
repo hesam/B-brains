@@ -3,6 +3,7 @@ package polyglot.ext.esj.ast;
 import java.util.*;
 import polyglot.ast.*;
 import polyglot.ext.jl.ast.*;
+import polyglot.ext.jl5.ast.*;
 import polyglot.util.*;
 import polyglot.types.*;
 import polyglot.ext.esj.types.ESJTypeSystem;
@@ -17,7 +18,7 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
     protected String id,quantVar;
     protected Expr quantListExpr;
     protected ESJQuantifyClauseExpr quantClauseExpr;
-    protected ESJPredMethodDecl parentMethod;
+    protected JL5MethodDecl parentMethod;
 
     public ESJQuantifyExpr_c(Position pos, boolean quantKind, String quantVar, Expr quantListExpr, Expr quantClauseExpr) {
 	super(pos);
@@ -48,11 +49,11 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
 	return quantVar;
     }
 
-    public ESJPredMethodDecl parentMethod() {
+    public JL5MethodDecl parentMethod() {
 	return parentMethod;
     }
 
-    public void parentMethod(ESJPredMethodDecl m) {
+    public void parentMethod(JL5MethodDecl m) {
 	this.parentMethod = m;
     }
 

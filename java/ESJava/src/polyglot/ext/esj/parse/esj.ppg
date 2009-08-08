@@ -21,7 +21,7 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
 
     // define separate methods for each universal/existential expressions
     // also define relational-logic counterparts, to be used by external solvers...
-    public List<JL5MethodDecl> defineESJExtraMethods(ESJPredMethodDecl methodDecl) throws Exception {
+    public List<JL5MethodDecl> defineESJExtraMethods(JL5MethodDecl methodDecl) throws Exception {
               List extraMtds = new TypedList(new LinkedList(), ClassMember.class, false);
 
 	      // find the pred_expression subexprs within the body and mark them	    
@@ -35,6 +35,9 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
 	      	  Expr quantList = a.quantListExpr();
 	      	  Expr quantExpr = a.quantClauseExpr().expr();
 	      	  List extraMtdBody = new TypedList(new LinkedList(), Stmt.class, false);
+
+		  System.out.println(quantList);
+		  System.out.println(quantList.type());
 	      
 		  FlagAnnotations fl = new FlagAnnotations(); 
               	  fl.classicFlags(Flags.NONE);
@@ -51,19 +54,18 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
 	      	  extraMtdBody.add(forLoop);
 	      	  extraMtdBody.add(nf.JL5Return(null, nf.BooleanLit(null, quantKind)));
 	      	  Block extraMtdBlock = nf.Block(null, extraMtdBody);
-	      	  JL5MethodDecl extraMtd = nf.JL5MethodDecl(null, fl,
+	      	  JL5MethodDecl extraMtd = nf.ESJPredMethodDecl(null, fl,
 	                                          nf.CanonicalTypeNode(null,ts.Boolean()), 
 						  methodDecl.name() + "_" + quantMtdId, 
 						  methodDecl.formals(), 
 						  new TypedList(new LinkedList(), TypeNode.class, false), 
-						  extraMtdBlock,
-						  new TypedList(new LinkedList(), TypeNode.class, false));
+						  extraMtdBlock);
                   extraMtds.add(extraMtd);
              }
 	     return extraMtds;
     }
 
-    public List getPredExprsWithinBody(ESJPredMethodDecl methodDecl) {
+    public List getPredExprsWithinBody(JL5MethodDecl methodDecl) {
 	      List predSubExprs = new TypedList(new LinkedList(), ESJQuantifyExpr.class, false);
 	      Expr fullExpr = ((Return)(methodDecl.body().statements().get(0))).expr();
 	      getPredExprsWithinBodyHelper(fullExpr,predSubExprs);	      
@@ -87,7 +89,7 @@ terminal Token ALL;
 terminal Token ESJAND;
 terminal Token ESJOR;
 
-non terminal ESJPredMethodDecl pred_method_header;
+non terminal JL5MethodDecl pred_method_header;
 non terminal List pred_method_declaration;
 non terminal Block pred_method_body, pred_block;
 non terminal List pred_block_statements;
@@ -106,7 +108,7 @@ extend class_member_declaration ::=
 
 pred_method_declaration ::=
         pred_method_header:a pred_method_body:b 
-	   {: ESJPredMethodDecl mainMtdDecl = (ESJPredMethodDecl) a.body(b);
+	   {: JL5MethodDecl mainMtdDecl = (JL5MethodDecl) a.body(b);
               List l = new TypedList(new LinkedList(), ClassMember.class, false);
               l.add(mainMtdDecl);
 	      l.addAll(parser.defineESJExtraMethods(mainMtdDecl));
@@ -118,7 +120,7 @@ pred_method_declaration ::=
 pred_method_header ::=
         PREDICATE:z modifiers_or_annotations_opt:a BOOLEAN:b IDENTIFIER:c LPAREN 
                 formal_parameter_list_opt:d RPAREN:g dims_opt:e throws_opt:f
-            {: RESULT = parser.nf.ESJPredMethodDecl(null, a, parser.array(parser.nf.CanonicalTypeNode(null, parser.ts.Boolean()), e.intValue()), c.getIdentifier(), d, f, null); 
+            {: RESULT = parser.nf.JL5MethodDecl(null, a, parser.array(parser.nf.CanonicalTypeNode(null, parser.ts.Boolean()), e.intValue()), c.getIdentifier(), d, f, null, new TypedList(new LinkedList(), TypeNode.class, false)); 
             :}
     	    ;
 
