@@ -24,19 +24,21 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
     public List<JL5MethodDecl> defineESJExtraMethods(ESJPredMethodDecl methodDecl) throws Exception {
               List<JL5MethodDecl> extraMtds = new TypedList(new LinkedList(), ClassMember.class, false);
     	      ESJQuantifyExpr a = (ESJQuantifyExpr)((Return)(methodDecl.body().statements().get(0))).expr();
-	      System.out.println("in defineESJExtraMethods...");
 
-	      System.out.println(a);
+
     	      String quantMtdId = a.id();
     	      boolean quantKind = a.quantKind();
 	      String quantVarN = a.quantVar();
 	      Expr quantList = a.quantListExpr();
 	      Expr quantExpr = a.quantClauseExpr().expr();
+	      /*
+	      System.out.println("in defineESJExtraMethods...");
+	      System.out.println(a);
 	      System.out.println(quantMtdId);
 	      System.out.println(quantKind);
 	      System.out.println(quantList);
 	      System.out.println(quantExpr);
-
+	      */
 	      List extraMtdBody = new TypedList(new LinkedList(), Stmt.class, false);
 	      
 	      FlagAnnotations fl = new FlagAnnotations(); 
@@ -56,8 +58,8 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
 	      Block extraMtdBlock = nf.Block(null, extraMtdBody);
 	      JL5MethodDecl extraMtd = nf.JL5MethodDecl(null, fl,
 	                                          nf.CanonicalTypeNode(null,ts.Boolean()), 
-						  quantMtdId, 
-						  new TypedList(new LinkedList(), Formal.class, false), 
+						  methodDecl.name() + "_" + quantMtdId, 
+						  methodDecl.formals(), 
 						  new TypedList(new LinkedList(), TypeNode.class, false), 
 						  extraMtdBlock,
 						  new TypedList(new LinkedList(), TypeNode.class, false));
@@ -91,8 +93,8 @@ extend class_member_declaration ::=
 
 pred_method_declaration ::=
         pred_method_header:a pred_method_body:b 
-	   {: System.out.println(b); 
-	      ESJPredMethodDecl mainMtdDecl = (ESJPredMethodDecl) a.body(b); 
+	   {: ESJPredMethodDecl mainMtdDecl = (ESJPredMethodDecl) a.body(b); 
+	      ((ESJQuantifyExpr)(((Return)(b.statements().get(0))).expr())).parentMethod(mainMtdDecl);
               List l = new TypedList(new LinkedList(), ClassMember.class, false);
               l.add(mainMtdDecl);
 	      l.addAll(parser.defineESJExtraMethods(mainMtdDecl));
@@ -102,18 +104,10 @@ pred_method_declaration ::=
 
 
 pred_method_header ::=
-        PREDICATE:z modifiers_or_annotations_opt:a type:b IDENTIFIER:c LPAREN 
+        PREDICATE:z modifiers_or_annotations_opt:a BOOLEAN:b IDENTIFIER:c LPAREN 
                 formal_parameter_list_opt:d RPAREN:g dims_opt:e throws_opt:f
-            {: RESULT = parser.nf.ESJPredMethodDecl(parser.pos(b, g, c), a,
-               parser.array(b, e.intValue()), c.getIdentifier(),
-               d, f, null); 
+            {: RESULT = parser.nf.ESJPredMethodDecl(null, a, parser.array(parser.nf.CanonicalTypeNode(null, parser.ts.Boolean()), e.intValue()), c.getIdentifier(), d, f, null); 
             :}
-    |   PREDICATE:z modifiers_or_annotations_opt:a VOID:b IDENTIFIER:c LPAREN
-                formal_parameter_list_opt:d RPAREN:g throws_opt:f
-            {: RESULT = parser.nf.ESJPredMethodDecl(parser.pos(b, g, c), a,
-               parser.nf.CanonicalTypeNode(parser.pos(b),
-               parser.ts.Void()), c.getIdentifier(), d, f, null); 
-	    :}
     	    ;
 
 pred_method_body ::=
@@ -151,13 +145,13 @@ pred_expression ::=
        	   {: RESULT = parser.nf.ESJQuantifyExpr(parser.pos(a),false,b.toString(),d,f); :} 
 	   ;
 
-quant_list_expr ::=
+quant_list_expr ::=	
         primary_no_new_array:a
            {:  RESULT = a;  :}
-     |  integral_type
-           {: RESULT =  parser.nf.ESJQuantifyTypeExpr(null,new JL5Name(parser, null, "ESJInteger").toType());
+     |  INT:a
+           {:  RESULT = parser.nf.ESJQuantifyTypeExpr(null,parser.nf.CanonicalTypeNode(null, parser.ts.typeForName("ESJInteger")));
 	   :}
-     |  reference_type:a
-           {:  RESULT =  parser.nf.ESJQuantifyTypeExpr(null,a);
+     |  name:a
+           {:  RESULT = parser.nf.ESJQuantifyTypeExpr(null,parser.nf.CanonicalTypeNode(null, parser.ts.typeForName(a.toString())));
 	   :}
 	   ;

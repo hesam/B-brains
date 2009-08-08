@@ -33,11 +33,15 @@ public class ESJTranslator extends ContextVisitor {
 
     public Expr DesugarQuantifyExpr (ESJQuantifyExpr a)  {
 	boolean quantKind = a.quantKind();
-	String quantId = a.id();
+	String quantId = a.parentMethod().name()  + "_" + a.id();
 	String quantVarN = a.quantVar();
 	Expr quantList = a.quantListExpr();
 	ESJQuantifyClauseExpr quantExpr = a.quantClauseExpr();
-	return nf.Call(null,null,quantId, new TypedList(new LinkedList(), Expr.class, false));
+	List args = new TypedList(new LinkedList(), Expr.class, false);
+	for(Formal f : (List<Formal>)(a.parentMethod().formals())) {
+	    args.add(new Local_c(null,f.name()));
+	}
+	return nf.Call(null,null,quantId, args);
     }
 
     public Expr DesugarQuantifyTypeExpr (ESJQuantifyTypeExpr a)  {

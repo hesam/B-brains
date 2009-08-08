@@ -248,6 +248,8 @@ SingleCharacter = [^\r\n\'\\]
   "predicate"                    { return key(sym.PREDICATE); }
   "all"                          { return key(sym.ALL); }
   "some"                         { return key(sym.SOME); }
+  "and"                          { return key(sym.ESJAND); }
+  "or"                           { return key(sym.ESJOR); }
 
   /* boolean literals */
   "true"                         { return boolean_token(true); }

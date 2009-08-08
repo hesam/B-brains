@@ -33,51 +33,62 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
     // define separate methods for each universal/existential expressions
     // also define relational-logic counterparts, to be used by external solvers...
     public List<JL5MethodDecl> defineESJExtraMethods(ESJPredMethodDecl methodDecl) throws Exception {
-              List<JL5MethodDecl> extraMtds = new TypedList(new LinkedList(), ClassMember.class, false);
-    	      ESJQuantifyExpr a = (ESJQuantifyExpr)((Return)(methodDecl.body().statements().get(0))).expr();
+              List extraMtds = new TypedList(new LinkedList(), ClassMember.class, false);
 
+	      // find the pred_expression subexprs within the body and mark them	    
+	      List predExprs = getPredExprsWithinBody(methodDecl);
 
-    	      String quantMtdId = a.id();
-    	      boolean quantKind = a.quantKind();
-	      String quantVarN = a.quantVar();
-	      Expr quantList = a.quantListExpr();
-	      Expr quantExpr = a.quantClauseExpr().expr();
-	      /*
-	      System.out.println("in defineESJExtraMethods...");
-	      System.out.println(a);
-	      System.out.println(quantMtdId);
-	      System.out.println(quantKind);
-	      System.out.println(quantList);
-	      System.out.println(quantExpr);
-	      */
-	      List extraMtdBody = new TypedList(new LinkedList(), Stmt.class, false);
+	      for (ESJQuantifyExpr a : (List<ESJQuantifyExpr>)predExprs) { 
+	          a.parentMethod(methodDecl);
+    	      	  String quantMtdId = a.id();	  
+    	      	  boolean quantKind = a.quantKind();
+	      	  String quantVarN = a.quantVar();
+	      	  Expr quantList = a.quantListExpr();
+	      	  Expr quantExpr = a.quantClauseExpr().expr();
+	      	  List extraMtdBody = new TypedList(new LinkedList(), Stmt.class, false);
 	      
-	      FlagAnnotations fl = new FlagAnnotations(); 
-              fl.classicFlags(Flags.NONE);
-              fl.annotations(new TypedList(new LinkedList(), AnnotationElem.class, false));
-	      List quantClauseStmts = new TypedList(new LinkedList(), Stmt.class, false);
-	      VarDeclarator quantVar = new VarDeclarator(null, quantVarN);
-	      List quantVarD = this.variableDeclarators(nf.CanonicalTypeNode(null, this.ts.Int()), quantVar, fl);
-	      Expr quantMainIfExpr = quantKind ? nf.Unary(null, Unary.NOT, quantExpr) : quantExpr;
-	      Stmt quantMainStmt = nf.JL5If(null, quantMainIfExpr, 
-	          nf.JL5Return(null, nf.BooleanLit(null, !quantKind)), null);
-	      quantClauseStmts.add(quantMainStmt);	    
-	      Stmt forLoopBody = nf.Block(null, quantClauseStmts);
-	      Stmt forLoop = nf.ExtendedFor(null,quantVarD, quantList, quantMainStmt);
-	      extraMtdBody.add(forLoop);
-	      extraMtdBody.add(nf.JL5Return(null, nf.BooleanLit(null, quantKind)));
-	      Block extraMtdBlock = nf.Block(null, extraMtdBody);
-	      JL5MethodDecl extraMtd = nf.JL5MethodDecl(null, fl,
+		  FlagAnnotations fl = new FlagAnnotations(); 
+              	  fl.classicFlags(Flags.NONE);
+              	  fl.annotations(new TypedList(new LinkedList(), AnnotationElem.class, false));
+	      	  List quantClauseStmts = new TypedList(new LinkedList(), Stmt.class, false);
+	      	  VarDeclarator quantVar = new VarDeclarator(null, quantVarN);
+	      	  List quantVarD = this.variableDeclarators(nf.CanonicalTypeNode(null, this.ts.Int()), quantVar, fl);
+	      	  Expr quantMainIfExpr = quantKind ? nf.Unary(null, Unary.NOT, quantExpr) : quantExpr;
+	      	  Stmt quantMainStmt = nf.JL5If(null, quantMainIfExpr, 
+	               nf.JL5Return(null, nf.BooleanLit(null, !quantKind)), null);
+	          quantClauseStmts.add(quantMainStmt);	    
+	      	  Stmt forLoopBody = nf.Block(null, quantClauseStmts);
+	      	  Stmt forLoop = nf.ExtendedFor(null,quantVarD, quantList, quantMainStmt);
+	      	  extraMtdBody.add(forLoop);
+	      	  extraMtdBody.add(nf.JL5Return(null, nf.BooleanLit(null, quantKind)));
+	      	  Block extraMtdBlock = nf.Block(null, extraMtdBody);
+	      	  JL5MethodDecl extraMtd = nf.JL5MethodDecl(null, fl,
 	                                          nf.CanonicalTypeNode(null,ts.Boolean()), 
 						  methodDecl.name() + "_" + quantMtdId, 
 						  methodDecl.formals(), 
 						  new TypedList(new LinkedList(), TypeNode.class, false), 
 						  extraMtdBlock,
 						  new TypedList(new LinkedList(), TypeNode.class, false));
-              extraMtds.add(extraMtd);
-	      return extraMtds;
+                  extraMtds.add(extraMtd);
+             }
+	     return extraMtds;
     }
 
+    public List getPredExprsWithinBody(ESJPredMethodDecl methodDecl) {
+	      List predSubExprs = new TypedList(new LinkedList(), ESJQuantifyExpr.class, false);
+	      Expr fullExpr = ((Return)(methodDecl.body().statements().get(0))).expr();
+	      getPredExprsWithinBodyHelper(fullExpr,predSubExprs);	      
+	      return predSubExprs;
+     }
+
+     public void getPredExprsWithinBodyHelper(Expr n,List predSubExprs) {
+     	    if (n instanceof Binary) {
+	          getPredExprsWithinBodyHelper(((Binary)n).left(),predSubExprs);
+	          getPredExprsWithinBodyHelper(((Binary)n).right(),predSubExprs);
+	    } else if (n instanceof ESJQuantifyExpr) {
+	          predSubExprs.add(n);
+	    }
+     }
 
 
 :}
@@ -325,13 +336,15 @@ non terminal List element_values;
 terminal Token PREDICATE;
 terminal Token SOME;
 terminal Token ALL;
+terminal Token ESJAND;
+terminal Token ESJOR;
 non terminal ESJPredMethodDecl pred_method_header;
 non terminal List pred_method_declaration;
 non terminal Block pred_method_body, pred_block;
 non terminal List pred_block_statements;
 non terminal Return pred_statement;
-non terminal ESJQuantifyExpr pred_statement_expression, pred_expression;
-non terminal Expr quant_list_expr;
+non terminal ESJQuantifyExpr pred_expression;
+non terminal Expr equality_or_pred_expression, expression_w_pred, and_expression_w_pred, quant_list_expr;
 
 
 start with goal;
@@ -3063,8 +3076,7 @@ default_value_opt ::=
 
 pred_method_declaration ::=
     pred_method_header:a pred_method_body:b {:
-                                            ESJPredMethodDecl mainMtdDecl = (ESJPredMethodDecl) a.body(b); 
-	      ((ESJQuantifyExpr)(((Return)(b.statements().get(0))).expr())).parentMethod(mainMtdDecl);
+                                            ESJPredMethodDecl mainMtdDecl = (ESJPredMethodDecl) a.body(b);
               List l = new TypedList(new LinkedList(), ClassMember.class, false);
               l.add(mainMtdDecl);
 	      l.addAll(parser.defineESJExtraMethods(mainMtdDecl));
@@ -3095,12 +3107,25 @@ pred_block_statements ::=
                      :};
 
 pred_statement ::=
-    pred_statement_expression:a {:
-                                RESULT = parser.nf.JL5Return(parser.pos(a), a); 
-                                :};
+    expression_w_pred:a {:
+                        RESULT = parser.nf.JL5Return(parser.pos(a), a); 
+                        :};
 
-pred_statement_expression ::=
-    pred_expression:a {:   RESULT = a;   :};
+expression_w_pred ::=
+    and_expression_w_pred:a {:   RESULT = a;   :}
+ |  expression_w_pred:a ESJOR and_expression_w_pred:b {:
+                                                      RESULT = parser.nf.Binary(null, a, Binary.COND_OR, b); 
+                                                      :};
+
+and_expression_w_pred ::=
+    equality_or_pred_expression:a {:   RESULT = a;   :}
+ |  and_expression_w_pred:a ESJAND equality_or_pred_expression:b {:
+                                                                 RESULT = parser.nf.Binary(null, a, Binary.COND_AND, b); 
+                                                                 :};
+
+equality_or_pred_expression ::=
+    pred_expression:a {:   RESULT = a;   :}
+ |  equality_expression:a {:   RESULT = a;   :};
 
 pred_expression ::=
     ALL:a name:b COLON:c quant_list_expr:d OR:e conditional_expression:f {:
