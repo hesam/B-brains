@@ -17,4 +17,6 @@ public interface ESJNodeFactory extends JL5NodeFactory {
     ESJPredMethodDecl ESJPredMethodDecl(Position pos, FlagAnnotations flags, TypeNode returnType, String name, List formals, List throwTypes, Block body);
 
     ESJQuantifyExpr ESJQuantifyExpr(Position pos, boolean quantKind, String quantVar, Expr quantListExpr, Expr quantClauseExpr);
+
+    ESJQuantifyTypeExpr ESJQuantifyTypeExpr(Position pos, TypeNode theType);
 }

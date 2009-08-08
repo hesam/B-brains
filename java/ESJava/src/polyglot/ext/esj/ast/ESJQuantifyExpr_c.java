@@ -75,7 +75,7 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
 	System.out.println(n);
 	System.out.println(n.type());
 	System.out.println(quantListExpr);
-	System.out.println(((Expr)(quantListExpr.typeCheck(tc))).type());
+	//System.out.println(((Expr)(quantListExpr.typeCheck(tc))).type());
 	System.out.println(quantClauseExpr);
 	//quantClauseExpr = (ESJQuantifyClauseExpr)(quantClauseExpr.typeCheck(tc)); //FIXME
 	System.out.println(quantClauseExpr.type());

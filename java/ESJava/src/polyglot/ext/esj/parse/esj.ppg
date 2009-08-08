@@ -24,6 +24,8 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
     public List<JL5MethodDecl> defineESJExtraMethods(ESJPredMethodDecl methodDecl) throws Exception {
               List<JL5MethodDecl> extraMtds = new TypedList(new LinkedList(), ClassMember.class, false);
     	      ESJQuantifyExpr a = (ESJQuantifyExpr)((Return)(methodDecl.body().statements().get(0))).expr();
+	      System.out.println("in defineESJExtraMethods...");
+
 	      System.out.println(a);
     	      String quantMtdId = a.id();
     	      boolean quantKind = a.quantKind();
@@ -43,13 +45,14 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
 	      List quantClauseStmts = new TypedList(new LinkedList(), Stmt.class, false);
 	      VarDeclarator quantVar = new VarDeclarator(null, quantVarN);
 	      List quantVarD = this.variableDeclarators(nf.CanonicalTypeNode(null, this.ts.Int()), quantVar, fl);
-	      Stmt quantMainStmt = nf.JL5If(null, nf.Unary(null, Unary.NOT, quantExpr), 
-	          nf.JL5Return(null, nf.BooleanLit(null, false)), null);
+	      Expr quantMainIfExpr = quantKind ? nf.Unary(null, Unary.NOT, quantExpr) : quantExpr;
+	      Stmt quantMainStmt = nf.JL5If(null, quantMainIfExpr, 
+	          nf.JL5Return(null, nf.BooleanLit(null, !quantKind)), null);
 	      quantClauseStmts.add(quantMainStmt);	    
 	      Stmt forLoopBody = nf.Block(null, quantClauseStmts);
 	      Stmt forLoop = nf.ExtendedFor(null,quantVarD, quantList, quantMainStmt);
 	      extraMtdBody.add(forLoop);
-	      extraMtdBody.add(nf.JL5Return(null, nf.BooleanLit(null, true)));
+	      extraMtdBody.add(nf.JL5Return(null, nf.BooleanLit(null, quantKind)));
 	      Block extraMtdBlock = nf.Block(null, extraMtdBody);
 	      JL5MethodDecl extraMtd = nf.JL5MethodDecl(null, fl,
 	                                          nf.CanonicalTypeNode(null,ts.Boolean()), 
@@ -75,7 +78,7 @@ non terminal Block pred_method_body, pred_block;
 non terminal List pred_block_statements;
 non terminal Return pred_statement;
 non terminal ESJQuantifyExpr pred_statement_expression, pred_expression;
-
+non terminal Expr quant_list_expr;
 
 start with goal;
 
@@ -142,8 +145,19 @@ pred_statement_expression ::=
     	   ;
 
 pred_expression ::=
-        ALL:a name:b COLON:c primary_no_new_array:d OR:e conditional_expression:f
+        ALL:a name:b COLON:c quant_list_expr:d OR:e conditional_expression:f
        	   {: RESULT = parser.nf.ESJQuantifyExpr(parser.pos(a),true,b.toString(),d,f); :} 
-     |  SOME:a name:b COLON:c primary_no_new_array:d OR:e conditional_expression:f
+     |  SOME:a name:b COLON:c quant_list_expr:d OR:e conditional_expression:f
        	   {: RESULT = parser.nf.ESJQuantifyExpr(parser.pos(a),false,b.toString(),d,f); :} 
+	   ;
+
+quant_list_expr ::=
+        primary_no_new_array:a
+           {:  RESULT = a;  :}
+     |  integral_type
+           {: RESULT =  parser.nf.ESJQuantifyTypeExpr(null,new JL5Name(parser, null, "ESJInteger").toType());
+	   :}
+     |  reference_type:a
+           {:  RESULT =  parser.nf.ESJQuantifyTypeExpr(null,a);
+	   :}
 	   ;
