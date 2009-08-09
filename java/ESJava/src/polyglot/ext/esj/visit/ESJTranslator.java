@@ -31,6 +31,49 @@ public class ESJTranslator extends ContextVisitor {
 	//System.out.println("init Translating...");
     }
 
+    // quantify expr method desugars into a foreach stmt
+    /*
+    public JL5MethodDecl DesugarPredMethodDecl (ESJPredMethodDecl methodDecl)  {
+	System.out.println(methodDecl.body().statements());
+	String quantMtdId = methodDecl.id();	  
+	boolean quantKind = methodDecl.quantKind();
+	String quantVarN = methodDecl.quantVar();
+	List quantVarD = methodDecl.quantVarD();
+	Expr quantList = methodDecl.quantListExpr();
+	Expr quantExpr = methodDecl.quantClauseExpr();
+
+	System.out.println(quantMtdId);
+	System.out.println(quantKind);
+	System.out.println(quantVarN);
+	System.out.println(quantList);
+	System.out.println(quantList.type());
+	System.out.println(quantExpr);
+	System.out.println(quantVarD);
+	System.out.println(((LocalDecl)(quantVarD.get(0))).name());
+	List extraMtdBody = new TypedList(new LinkedList(), Stmt.class, false);
+	List quantClauseStmts = new TypedList(new LinkedList(), Stmt.class, false);
+	Expr quantMainIfExpr = quantKind ? nf.Unary(null, Unary.NOT, quantExpr) : quantExpr;
+	Stmt quantMainStmt = ((ESJNodeFactory)nf).JL5If(null, quantMainIfExpr, 
+				      ((ESJNodeFactory)nf).JL5Return(null, nf.BooleanLit(null, !quantKind)), null);
+	quantClauseStmts.add(quantMainStmt);	    
+	Stmt forLoopBody = nf.Block(null, quantClauseStmts);
+	Stmt forLoop = ((ESJNodeFactory)nf).ExtendedFor(null,quantVarD, quantList, quantMainStmt);
+	//extraMtdBody.add(forLoop);
+	extraMtdBody.addAll(quantVarD);
+	extraMtdBody.add(((ESJNodeFactory)nf).JL5Return(null, nf.BooleanLit(null, quantKind)));
+	System.out.println(extraMtdBody);
+	System.out.println(methodDecl.name());
+	System.out.println(methodDecl.formals());
+	Block extraMtdBlock = nf.Block(null, extraMtdBody);
+	methodDecl = (ESJPredMethodDecl) methodDecl.body(extraMtdBlock);
+	System.out.println(methodDecl.body());
+	return (JL5MethodDecl) methodDecl;
+
+	//return ((ESJNodeFactory)nf).JL5MethodDecl(null, fl, nf.CanonicalTypeNode(null,ts.Boolean()), methodDecl.name(), methodDecl.formals(), new TypedList(new LinkedList(), TypeNode.class, false), extraMtdBlock,new TypedList(new LinkedList(), TypeNode.class, false));
+    }
+*/
+
+    // quantify expr desugars to a method call (defined above)
     public Expr DesugarQuantifyExpr (ESJQuantifyExpr a)  {
 	boolean quantKind = a.quantKind();
 	String quantId = a.parentMethod().name()  + "_" + a.id();
@@ -53,18 +96,23 @@ public class ESJTranslator extends ContextVisitor {
     }
 
     protected Node leaveCall(Node n) throws SemanticException {
-	if (n instanceof ESJPredMethodDecl) {
-	    System.out.println("yep");
-	    System.out.println(((ESJPredMethodDecl)n).body());
-	}
+	/*	if (n instanceof ESJPredMethodDecl) {
+	    System.out.println("t1: " + n);
+	    return super.leaveCall(DesugarPredMethodDecl((ESJPredMethodDecl)n));
+	    } else */
 
-	if (n instanceof ESJQuantifyExpr) {
+if (n instanceof ESJQuantifyExpr) {
+	    System.out.println("t2: " + n);
 	    return super.leaveCall(DesugarQuantifyExpr((ESJQuantifyExpr)n));
 	} else if (n instanceof ESJQuantifyTypeExpr) {
+	    System.out.println("t3: " + n);
 	    return super.leaveCall(DesugarQuantifyTypeExpr((ESJQuantifyTypeExpr)n));
-	} else
+	} else { 	
 	    return super.leaveCall(n);
+	}
     }
 
 }
+
+
 

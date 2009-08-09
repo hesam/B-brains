@@ -39,7 +39,14 @@ public class ESJQuantifyClauseExpr_c extends Expr_c implements ESJQuantifyClause
 
     /** Reconstruct the pred expr. */
     protected ESJQuantifyClauseExpr_c reconstruct(String quantVar, Expr expr) {
-	return this;
+	if (quantVar != this.quantVar || expr != this.expr) {
+	    ESJQuantifyClauseExpr_c n = (ESJQuantifyClauseExpr_c) copy();
+	    n.quantVar = quantVar;
+	    n.expr = expr;
+	    return n;
+	} else {
+	    return this;
+	}
     }
 
       /** Visit the children of the method. */

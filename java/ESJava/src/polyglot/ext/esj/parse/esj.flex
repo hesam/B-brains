@@ -246,10 +246,10 @@ SingleCharacter = [^\r\n\'\\]
   "strictfp"                     { return key(sym.STRICTFP); }
   "assert"                       { return key(sym.ASSERT); }
   "predicate"                    { return key(sym.PREDICATE); }
+  "ensures"                      { return key(sym.ENSURES); }
+  "ensured"                      { return key(sym.ENSURED); }
   "all"                          { return key(sym.ALL); }
   "some"                         { return key(sym.SOME); }
-  "and"                          { return key(sym.ESJAND); }
-  "or"                           { return key(sym.ESJOR); }
 
   /* boolean literals */
   "true"                         { return boolean_token(true); }

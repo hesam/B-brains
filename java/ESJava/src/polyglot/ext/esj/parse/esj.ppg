@@ -34,32 +34,43 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
 	      	  String quantVarN = a.quantVar();
 	      	  Expr quantList = a.quantListExpr();
 	      	  Expr quantExpr = a.quantClauseExpr().expr();
-	      	  List extraMtdBody = new TypedList(new LinkedList(), Stmt.class, false);
-
-		  System.out.println(quantList);
-		  System.out.println(quantList.type());
-	      
 		  FlagAnnotations fl = new FlagAnnotations(); 
               	  fl.classicFlags(Flags.NONE);
               	  fl.annotations(new TypedList(new LinkedList(), AnnotationElem.class, false));
-	      	  List quantClauseStmts = new TypedList(new LinkedList(), Stmt.class, false);
-	      	  VarDeclarator quantVar = new VarDeclarator(null, quantVarN);
-	      	  List quantVarD = this.variableDeclarators(nf.CanonicalTypeNode(null, this.ts.Int()), quantVar, fl);
-	      	  Expr quantMainIfExpr = quantKind ? nf.Unary(null, Unary.NOT, quantExpr) : quantExpr;
-	      	  Stmt quantMainStmt = nf.JL5If(null, quantMainIfExpr, 
-	               nf.JL5Return(null, nf.BooleanLit(null, !quantKind)), null);
-	          quantClauseStmts.add(quantMainStmt);	    
-	      	  Stmt forLoopBody = nf.Block(null, quantClauseStmts);
-	      	  Stmt forLoop = nf.ExtendedFor(null,quantVarD, quantList, quantMainStmt);
-	      	  extraMtdBody.add(forLoop);
-	      	  extraMtdBody.add(nf.JL5Return(null, nf.BooleanLit(null, quantKind)));
-	      	  Block extraMtdBlock = nf.Block(null, extraMtdBody);
-	      	  JL5MethodDecl extraMtd = nf.ESJPredMethodDecl(null, fl,
+	          List mStmts = new TypedList(new LinkedList(), Stmt.class, false);
+
+
+		  VarDeclarator quantVar = new VarDeclarator(null, quantVarN);
+
+		  quantVar.init = nf.IntLit(null, IntLit.INT, 0);
+              	  List quantVarD = this.variableDeclarators(nf.CanonicalTypeNode(null, ts.Int()), quantVar, fl);
+
+	List quantClauseStmts = new TypedList(new LinkedList(), Stmt.class, false);
+	Expr quantMainIfExpr = quantKind ? nf.Unary(null, Unary.NOT, quantExpr) : quantExpr;
+	Stmt quantMainStmt = ((ESJNodeFactory)nf).JL5If(null, quantMainIfExpr, 
+				      ((ESJNodeFactory)nf).JL5Return(null, nf.BooleanLit(null, !quantKind)), null);
+	quantClauseStmts.add(quantMainStmt);	    
+	Stmt forLoopBody = nf.Block(null, quantClauseStmts);
+	Stmt forLoop = ((ESJNodeFactory)nf).ExtendedFor(null,quantVarD, quantList, quantMainStmt);	
+	mStmts.add(forLoop);
+	mStmts.add(nf.JL5Return(null, nf.BooleanLit(null,quantKind)));
+		  /*
+	      	  ESJPredMethodDecl extraMtd = nf.ESJPredMethodDecl(null, fl,
 	                                          nf.CanonicalTypeNode(null,ts.Boolean()), 
 						  methodDecl.name() + "_" + quantMtdId, 
 						  methodDecl.formals(), 
 						  new TypedList(new LinkedList(), TypeNode.class, false), 
-						  extraMtdBlock);
+						  nf.Block(null, mStmts),
+						  quantMtdId, quantKind, quantVarN, quantVarD,
+						  quantList, quantExpr); */
+
+	      	  JL5MethodDecl extraMtd = nf.JL5MethodDecl(null, fl,
+	                                          nf.CanonicalTypeNode(null,ts.Boolean()), 
+						  methodDecl.name() + "_" + quantMtdId, 
+						  methodDecl.formals(), 
+						  new TypedList(new LinkedList(), TypeNode.class, false), 
+						  nf.Block(null, mStmts),
+						  new TypedList(new LinkedList(), TypeNode.class, false));
                   extraMtds.add(extraMtd);
              }
 	     return extraMtds;
@@ -84,18 +95,40 @@ parser Grm extends polyglot.ext.jl5.parse.Grm {:
 :};
 
 terminal Token PREDICATE;
+terminal Token ENSURES;
+terminal Token ENSURED;
 terminal Token SOME;
 terminal Token ALL;
-terminal Token ESJAND;
-terminal Token ESJOR;
 
 non terminal JL5MethodDecl pred_method_header;
-non terminal List pred_method_declaration;
+non terminal ESJEnsuredMethodDecl ensured_method_header;
+non terminal List pred_method_declaration, ensured_method_declaration;
 non terminal Block pred_method_body, pred_block;
 non terminal List pred_block_statements;
 non terminal Return pred_statement;
 non terminal ESJQuantifyExpr pred_expression;
-non terminal Expr equality_or_pred_expression, expression_w_pred, and_expression_w_pred, quant_list_expr;
+non terminal Expr quantify_expression, quant_list_expr, ensures_opt, ensures_clause;
+
+non terminal Expr predicate_expr;
+non terminal Expr or_predicate_expr;
+non terminal Expr orPredExpr_opt;
+non terminal Expr and_predicate_expr;
+non terminal Expr andPredExpr_opt;
+non terminal Expr equality_predicate_expr;
+non terminal Binary.Operator equality_predicate_op;
+non terminal Expr relational_predicate_expr;
+non terminal Binary.Operator relational_predicate_op;
+non terminal Expr additive_predicate_expr;
+non terminal Binary.Operator additive_predicate_op;
+non terminal Expr multiplicative_predicate_expr;
+non terminal Expr unary_predicate_expr;
+non terminal Expr atomic_predicate_expr;
+non terminal Expr formal_or_field_access;
+non terminal Receiver field_prefix;
+non terminal Expr predicate_literal;
+
+
+
 
 start with goal;
 
@@ -104,7 +137,11 @@ start with goal;
 extend class_member_declaration ::=
         pred_method_declaration:a 
 	   {: RESULT = a; :}
+     |  ensured_method_declaration:a 
+	   {: RESULT = a; :}
 	   ;
+
+// PART1:      ESJPredMethod
 
 pred_method_declaration ::=
         pred_method_header:a pred_method_body:b 
@@ -143,35 +180,14 @@ pred_block_statements ::=
 	   ;
 
 pred_statement ::=
-        expression_w_pred:a 
+        predicate_expr:a 
 	   {: RESULT = parser.nf.JL5Return(parser.pos(a), a); :}
 	   ;
 
-expression_w_pred ::=
-        and_expression_w_pred:a 
-           {:  RESULT = a;  :}
-     |  expression_w_pred:a ESJOR and_expression_w_pred:b 
-           {: RESULT = parser.nf.Binary(null, a, Binary.COND_OR, b); :}
-	   ;
-
-and_expression_w_pred ::=
-        equality_or_pred_expression:a 
-           {:  RESULT = a;  :}
-     |  and_expression_w_pred:a ESJAND equality_or_pred_expression:b 
-           {: RESULT = parser.nf.Binary(null, a, Binary.COND_AND, b); :}
-	   ;
-
-equality_or_pred_expression ::=
-        pred_expression:a 
-           {:  RESULT = a;  :}
-     |  equality_expression:a 
-           {:  RESULT = a;  :}
-	   ;
-
-pred_expression ::=
-        ALL:a name:b COLON:c quant_list_expr:d OR:e conditional_expression:f
+quantify_expression ::=
+        ALL:a name:b COLON:c quant_list_expr:d OR:e equality_predicate_expr:f
        	   {: RESULT = parser.nf.ESJQuantifyExpr(parser.pos(a),true,b.toString(),d,f); :} 
-     |  SOME:a name:b COLON:c quant_list_expr:d OR:e conditional_expression:f
+     |  SOME:a name:b COLON:c quant_list_expr:d OR:e equality_predicate_expr:f
        	   {: RESULT = parser.nf.ESJQuantifyExpr(parser.pos(a),false,b.toString(),d,f); :} 
 	   ;
 
@@ -185,3 +201,199 @@ quant_list_expr ::=
            {:  RESULT = parser.nf.ESJQuantifyTypeExpr(null,parser.nf.CanonicalTypeNode(null, parser.ts.typeForName(a.toString())));
 	   :}
 	   ;
+
+predicate_expr ::=
+	or_predicate_expr:a
+	    {: RESULT = a; :}   
+    ;
+
+or_predicate_expr ::=
+	and_predicate_expr:a orPredExpr_opt:b
+	    {: if (b == null)
+		  RESULT = a;
+	       else
+		  RESULT = parser.nf.Binary(parser.pos(a), a,
+		                            Binary.COND_OR, b); :}
+    ;
+
+orPredExpr_opt ::=
+    	    {: RESULT = null; :}
+    |
+        OROR or_predicate_expr:a
+	    {: RESULT = a; :}
+    ;    
+
+and_predicate_expr ::=
+	equality_predicate_expr:a andPredExpr_opt:b
+	    {: if (b == null)
+		  RESULT = a;
+	       else
+		  RESULT = parser.nf.Binary(parser.pos(a), a,
+				            Binary.COND_AND, b); :}
+    ;
+
+andPredExpr_opt ::=
+    	    {: RESULT = null; :}
+    |
+        ANDAND and_predicate_expr:a
+	    {: RESULT = a; :}
+    ;    
+
+
+equality_predicate_expr ::=
+        quantify_expression:a
+	    {: RESULT = a; :}
+    |
+	relational_predicate_expr:a
+            {: RESULT = a; :}
+    |   relational_predicate_expr:a  equality_predicate_op:b
+        equality_predicate_expr:c
+	    {: RESULT = parser.nf.Binary(parser.pos(a), a, b, c); :} 
+    ;
+
+equality_predicate_op ::=
+        EQEQ {: RESULT = Binary.EQ; :}
+   |    NOTEQ {: RESULT = Binary.NE; :}
+   ;
+
+
+relational_predicate_expr ::=
+	additive_predicate_expr:a
+            {: RESULT = a; :}
+    |   additive_predicate_expr:a  relational_predicate_op:b
+        relational_predicate_expr:c
+	    {: RESULT = parser.nf.Binary(parser.pos(a), a, b, c); :}
+    ;
+
+relational_predicate_op ::=
+       LT {: RESULT = Binary.LT; :}
+   |   LTEQ {: RESULT = Binary.LE; :}
+   |    GT {: RESULT = Binary.GT; :}
+   |    GTEQ {: RESULT = Binary.GE; :}
+   ;
+    
+additive_predicate_expr ::=
+        multiplicative_predicate_expr:a
+	   {: RESULT = a; :}
+   |    multiplicative_predicate_expr:a additive_predicate_op:b
+        additive_predicate_expr:c
+	   {: RESULT = parser.nf.Binary(parser.pos(a), a, b, c); :}
+   ;
+
+additive_predicate_op ::=
+        PLUS {: RESULT = Binary.ADD; :}
+   |    MINUS {: RESULT = Binary.SUB; :}
+   ;
+   
+multiplicative_predicate_expr ::=
+        unary_predicate_expr:a
+	   {: RESULT = a; :}
+   |    unary_predicate_expr:a MULT multiplicative_predicate_expr:b
+	   {: RESULT = parser.nf.Binary(parser.pos(a), a,
+	                                Binary.MUL, b); :}
+   ;
+
+unary_predicate_expr ::=
+	atomic_predicate_expr:a 
+	    {: RESULT = a; :}
+    |
+        MINUS unary_predicate_expr:a
+	    {: RESULT = parser.nf.Unary(parser.pos(a), Unary.NEG, a); :}
+    |
+        NOT unary_predicate_expr:a
+	    {: RESULT = parser.nf.Unary(parser.pos(a), Unary.NOT, a); :}
+    ;
+
+atomic_predicate_expr ::=
+        predicate_literal:a
+	    {: RESULT = a; :}	   
+    |   formal_or_field_access:a
+	    {: RESULT = a; :}	       
+    |   LPAREN predicate_expr:a RPAREN
+	    {: RESULT = a; :}
+    ;
+
+formal_or_field_access ::=
+	simple_name:a
+	   {: RESULT = a.toExpr(); :}
+    |   THIS:a
+           {: RESULT = parser.nf.This(parser.pos(a)); :}
+    |   IDENTIFIER:a LPAREN argument_list_opt:b RPAREN:c
+           {: RESULT = parser.nf.Call(parser.pos(a, c), a.getIdentifier(),
+                                      b); :}
+    |   field_prefix:a DOT IDENTIFIER:b LPAREN argument_list_opt:c RPAREN:d
+           {: RESULT = parser.nf.Call(parser.pos(b,d), a, b.getIdentifier(),
+                                      c); :}
+    |   field_prefix:a DOT IDENTIFIER:b
+           {: RESULT = parser.nf.Field(parser.pos(b), a,
+				       b.getIdentifier()); :}
+    |   formal_or_field_access:a LBRACK predicate_expr:b RBRACK:c
+           {: RESULT = parser.nf.ArrayAccess(parser.pos(a, c), a, b); :}
+    ;
+
+field_prefix ::=			
+    |   THIS:a
+           {: RESULT = parser.nf.This(parser.pos(a)); :}
+//    |   SUPER:a
+//	   {: RESULT = parser.nf.Super(parser.pos(a)); :}
+    |	simple_name:a
+	   {: RESULT = a.toReceiver(); :}
+    |   field_prefix:a DOT IDENTIFIER:b LPAREN argument_list_opt:c RPAREN:d
+           {: RESULT = parser.nf.Call(parser.pos(b,d), a, b.getIdentifier(),
+                                      c); :}
+    |   field_prefix:a DOT IDENTIFIER:b
+           {: RESULT = parser.nf.Field(parser.pos(b), a,
+				       b.getIdentifier()); :}
+    |   formal_or_field_access:a LBRACK predicate_expr:b RBRACK:c
+           {: RESULT = parser.nf.ArrayAccess(parser.pos(a, c), a, b); :}
+    ;
+
+// currently only allowing ints, booleans, and null   
+predicate_literal ::=
+        INTEGER_LITERAL:a    
+            {: RESULT = parser.nf.IntLit(parser.pos(a), IntLit.INT,
+                                     a.getValue().intValue()); :} 
+    |   BOOLEAN_LITERAL:a
+            {: RESULT = parser.nf.BooleanLit(parser.pos(a),
+                                         a.getValue().booleanValue()); :}
+    |   NULL_LITERAL:a
+            {: RESULT = parser.nf.NullLit(parser.pos(a)); :}
+    ;
+
+
+// PART2:  method esnures clause
+
+ensured_method_declaration ::=
+        ENSURED ensured_method_header:a method_body:b 
+	   {: ESJEnsuredMethodDecl mainMtdDecl = (ESJEnsuredMethodDecl) a.body(b);
+              List l = new TypedList(new LinkedList(), ClassMember.class, false);
+              l.add(mainMtdDecl);
+              RESULT = l; 
+	   :}
+	   ;
+
+ensured_method_header ::=
+    modifiers_or_annotations_opt:a type:b method_declarator:c throws_opt:d ensures_opt:z {:
+                                                                           RESULT = parser.nf.ESJEnsuredMethodDecl(c.position(), a, parser.array(b, c.dims().intValue()), c.name(), c.formals(), d, null, new TypedList(new LinkedList(), TypeNode.class, false), z); 
+                                                                           :}
+ |  modifiers_or_annotations_opt:a LT:b type_parameter_list_1:c type:d method_declarator:e throws_opt:f ensures_opt:z {:
+                                                                                                        RESULT = parser.nf.ESJEnsuredMethodDecl(e.position(), a, parser.array(d, e.dims().intValue()), e.name(), e.formals(), f, null, c, z); 
+                                                                                                        :}
+ |  modifiers_or_annotations_opt:a VOID:b method_declarator:c throws_opt:e ensures_opt:z {:
+                                                                           RESULT = parser.nf.ESJEnsuredMethodDecl(c.position(), a, parser.nf.CanonicalTypeNode(parser.pos(b), parser.ts.Void()), c.name(), c.formals(), e, null, new TypedList(new LinkedList(), TypeNode.class, false), z); 
+                                                                           :}
+ |  modifiers_or_annotations_opt:a LT:b type_parameter_list_1:c VOID:d method_declarator:e throws_opt:f ensures_opt:z {:
+                                                                                                        RESULT = parser.nf.ESJEnsuredMethodDecl(e.position(), a, parser.nf.CanonicalTypeNode(parser.pos(d), parser.ts.Void()), e.name(), e.formals(), f, null, c, z); 
+                                                                                                        :};
+
+ensures_opt ::=
+           {: RESULT = null;  :}
+     |  ensures_clause:a 
+           {:  RESULT = a;  :}
+	   ;
+
+ensures_clause ::=
+        ENSURES predicate_expr:a
+           {: RESULT = a; :}
+	   ;
+

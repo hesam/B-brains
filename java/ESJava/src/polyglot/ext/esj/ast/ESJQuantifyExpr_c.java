@@ -67,6 +67,14 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
 
     /** Reconstruct the pred expr. */
     protected ESJQuantifyExpr_c reconstruct(boolean quantKind, String quantVar, Expr quantListExpr, ESJQuantifyClauseExpr quantClauseExpr) {
+	if (quantListExpr != this.quantListExpr || quantClauseExpr != this.quantClauseExpr) {
+	    ESJQuantifyExpr_c n = (ESJQuantifyExpr_c) copy();
+	    n.quantKind = quantKind;
+	    n.quantVar = quantVar;
+	    n.quantListExpr = quantListExpr;
+	    n.quantClauseExpr = quantClauseExpr;
+	    return n;
+	}
 	return this;
     }
 
