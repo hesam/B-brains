@@ -31,6 +31,32 @@ public class ESJTranslator extends ContextVisitor {
 	//System.out.println("init Translating...");
     }
 
+    /*
+    public JL5MethodDecl DesugarEnsuredMethodDecl (ESJEnsuredMethodDecl methodDecl)  {
+	System.out.println(methodDecl.body().statements());
+	System.out.println(methodDecl.ensuresExpr());
+	List extraMtdBody = new TypedList(new LinkedList(), Stmt.class, false);
+	extraMtdBody.addAll(methodDecl.body().statements());
+	extraMtdBody.add(((ESJNodeFactory)nf).JL5Assert(null, methodDecl.ensuresExpr(), null));
+
+	System.out.println(methodDecl.catchFormal());
+
+	List catches = new TypedList(new LinkedList(), Catch.class, false);
+	Block extraMtdBlock = nf.Block(null, extraMtdBody);
+	List catchBody = new TypedList(new LinkedList(), Stmt.class, false);
+	catchBody.add(nf.Return(null, nf.Call(null, null, "fallback",
+					      new TypedList(new LinkedList(), Expr.class, false))));
+	Block catchBlock = nf.Block(null,catchBody);
+	catches.add(((ESJNodeFactory)nf).JL5Catch(null, methodDecl.catchFormal(), catchBlock));
+	List tryBody = new TypedList(new LinkedList(), Stmt.class, false);
+	tryBody.add(nf.Try(null, extraMtdBlock, catches));
+	Block tryCatchBlock = nf.Block(null, tryBody);
+	methodDecl = (ESJEnsuredMethodDecl) methodDecl.body(tryCatchBlock);
+	System.out.println(methodDecl.body());
+	return (JL5MethodDecl) methodDecl;
+    }
+    */
+
     // quantify expr method desugars into a foreach stmt
     /*
     public JL5MethodDecl DesugarPredMethodDecl (ESJPredMethodDecl methodDecl)  {
@@ -100,17 +126,39 @@ public class ESJTranslator extends ContextVisitor {
 	    System.out.println("t1: " + n);
 	    return super.leaveCall(DesugarPredMethodDecl((ESJPredMethodDecl)n));
 	    } else */
-
-if (n instanceof ESJQuantifyExpr) {
-	    System.out.println("t2: " + n);
+	/*
+	if (n instanceof ESJEnsuredMethodDecl) {
+	    System.out.println("yep:" + n);
+	    return super.leaveCall(DesugarEnsuredMethodDecl((ESJEnsuredMethodDecl)n));
+	} else */ 
+	if (n instanceof ESJQuantifyExpr) {
 	    return super.leaveCall(DesugarQuantifyExpr((ESJQuantifyExpr)n));
 	} else if (n instanceof ESJQuantifyTypeExpr) {
-	    System.out.println("t3: " + n);
 	    return super.leaveCall(DesugarQuantifyTypeExpr((ESJQuantifyTypeExpr)n));
 	} else { 	
 	    return super.leaveCall(n);
 	}
     }
+
+
+    /*
+    public TypeNode array (TypeNode n, int dims) throws Exception
+  {
+    if (dims > 0)
+      {
+	if (n instanceof CanonicalTypeNode)
+	  {
+	    Type t = ((CanonicalTypeNode) n).type ();
+	      return nf.CanonicalTypeNode (null, ts.arrayOf (t, dims));
+	  }
+	return nf.ArrayTypeNode (null, array (n, dims - 1));
+      }
+    else
+      {
+	return n;
+      }
+  }
+*/
 
 }
 

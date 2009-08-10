@@ -21,9 +21,10 @@ public interface ESJNodeFactory extends JL5NodeFactory {
 					String quantVarN, List quantVarD, Expr quantListExpr, Expr quantClauseExpr);
     
     ESJEnsuredMethodDecl ESJEnsuredMethodDecl(Position pos, FlagAnnotations flags,
-				       TypeNode returnType, String name,
-				       List formals, List throwTypes, Block body, 
-				       List paramTypes, Expr ensuresExpr);
+					      TypeNode returnType, String name,
+					      List formals, List throwTypes, Block body, 
+					      List paramTypes, Expr ensuresExpr, 
+					      JL5Formal catchFormal);
 
     ESJQuantifyExpr ESJQuantifyExpr(Position pos, boolean quantKind, String quantVar, Expr quantListExpr, Expr quantClauseExpr);
 
