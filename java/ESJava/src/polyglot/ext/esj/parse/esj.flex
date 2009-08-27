@@ -250,6 +250,9 @@ SingleCharacter = [^\r\n\'\\]
   "ensured"                      { return key(sym.ENSURED); }
   "all"                          { return key(sym.ALL); }
   "some"                         { return key(sym.SOME); }
+  "no"                           { return key(sym.NO); }
+  "one"                          { return key(sym.ONE); }
+  "lone"                         { return key(sym.LONE); }
 
   /* boolean literals */
   "true"                         { return boolean_token(true); }

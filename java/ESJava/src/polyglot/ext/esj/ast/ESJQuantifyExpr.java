@@ -2,6 +2,7 @@ package polyglot.ext.esj.ast;
 
 import java.util.*;
 
+import polyglot.types.*;
 import polyglot.ast.*;
 import polyglot.ext.jl5.ast.*;
 
@@ -9,8 +10,10 @@ import polyglot.ext.jl5.ast.*;
 public interface ESJQuantifyExpr extends Expr {
 
     public String id();
-    public boolean quantKind();
-    public String quantVar();
+    public FormulaBinary.Operator quantKind();
+    public String quantVarN();
+    public List quantVarD();
+    public LocalInstance quantVarI();
     public Expr quantListExpr();
     public ESJQuantifyClauseExpr quantClauseExpr();
     public JL5MethodDecl parentMethod();
