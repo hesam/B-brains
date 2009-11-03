@@ -21,34 +21,54 @@ public interface ESJNodeFactory extends JL5NodeFactory {
 					    TypeNode superType, List interfaces, ClassBody body, 
 					    List<ParamTypeNode> paramTypes);
 
+    ESJLogVarClassDecl ESJLogVarClassDecl(Position pos, FlagAnnotations fl, String name, 
+					  TypeNode superType, List interfaces, ClassBody body, 
+					  List<ParamTypeNode> paramTypes);
+
+    ESJMethodDecl ESJMethodDecl(Position pos, FlagAnnotations flags,
+				TypeNode returnType, String name,
+				List formals,
+				List throwTypes, Block body, List paramTypes, 
+				boolean isPredicate);
+
     ESJPredMethodDecl ESJPredMethodDecl(Position pos, FlagAnnotations flags,
 					TypeNode returnType, String name,
 					List formals, List throwTypes, Block body, 
 					List paramTypes, String quantMtdId, 
-					FormulaBinary.Operator quantKind, String quantVarN, List quantVarD, 
-					LocalInstance quantVarI, Expr quantListExpr, 
-					ESJQuantifyClauseExpr quantClauseExpr);
+					FormulaBinary.Operator quantKind, String quantVarN, 
+					List quantVarD, Expr quantListExpr, 
+					ESJQuantifyClauseExpr quantClauseExpr,
+					boolean isComprehension);
 
     ESJLogPredMethodDecl ESJLogPredMethodDecl(Position pos, FlagAnnotations flags,
 					      TypeNode returnType, String name,
 					      List formals, List throwTypes, Block body, 
-					      List paramTypes, boolean isFallBack); 
+					      List paramTypes, List quantVarD, List quantVarD2, 
+					      boolean isPredicate, boolean isFallBack, 
+					      boolean isLogVar); 
     
     ESJEnsuredMethodDecl ESJEnsuredMethodDecl(Position pos, FlagAnnotations flags,
 					      TypeNode returnType, String name,
 					      List formals, List throwTypes, Block body, 
 					      List paramTypes, Expr ensuresExpr, 
-					      JL5Formal catchFormal);
+					      JL5Formal catchFormal, List modifiableFields, 
+					      Expr modifiableObjets);
 
-    ESJQuantifyExpr ESJQuantifyExpr(Position pos, FormulaBinary.Operator quantKind, String quantVarN, List quantVarD, LocalInstance quantVarI, Expr quantListExpr, Expr quantClauseExpr);
+    ESJQuantifyExpr ESJQuantifyExpr(Position pos, FormulaBinary.Operator quantKind, String quantVarN, List quantVarD, List quantVarD2, Expr quantListExpr, Expr quantClauseExpr, boolean isComprehension);
 
-    ESJLogQuantifyExpr ESJLogQuantifyExpr(Position pos, FormulaBinary.Operator quantKind, String quantVarN, List quantVarD, LocalInstance quantVarI, Expr quantListExpr, Expr quantClauseExpr);
+    ESJLogQuantifyExpr ESJLogQuantifyExpr(Position pos, FormulaBinary.Operator quantKind, String quantVarN, List quantVarD, List quantVarD2, Expr quantListExpr, Expr quantClauseExpr, ESJLogPredMethodDecl parentMethod, boolean isComprehension);
 
-    ESJQuantifyTypeExpr ESJQuantifyTypeExpr(Position pos, CanonicalTypeNode theType);
+    ESJQuantifyTypeExpr ESJQuantifyTypeExpr(Position pos, String theType);
 
     FormulaBinary FormulaBinary(Position pos, Expr left, Binary.Operator op, Expr right);
     CmpBinary CmpBinary(Position pos, Expr left, Binary.Operator op, Expr right);
-    ESJQuantVarLocalDecl ESJQuantVarLocalDecl(Position pos, FlagAnnotations flags, TypeNode type, String name, Expr init);
 
-    ESJFieldDecl ESJFieldDecl(Position pos, FlagAnnotations flags, TypeNode type, String name, Expr init, boolean isPrime);
+    ESJFieldDecl ESJFieldDecl(Position pos, FlagAnnotations flags, TypeNode type, String name, Expr init, boolean isOld);
+
+    ESJFieldClosure ESJFieldClosure(Position pos, Receiver target, String name, FormulaBinary.Operator kind, List multiNames, String theType);
+
+    ESJFieldCall ESJFieldCall(Position pos, Receiver target, String name, List arguments);
+
+    ESJFieldClosureCall ESJFieldClosureCall(Position pos, Receiver target, String name, List arguments, FormulaBinary.Operator kind);
+
 }

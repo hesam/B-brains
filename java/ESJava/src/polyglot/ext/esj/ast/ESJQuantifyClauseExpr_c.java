@@ -53,7 +53,6 @@ public class ESJQuantifyClauseExpr_c extends Expr_c implements ESJQuantifyClause
 
       // Visit the children of the method.
     public Node visitChildren(NodeVisitor v) {
-
 	Expr expr = (Expr) visitChild(this.expr, v);
 	return reconstruct(expr);
     }
@@ -72,8 +71,10 @@ public class ESJQuantifyClauseExpr_c extends Expr_c implements ESJQuantifyClause
 					}*/
 	    // make sure that the restrictions on array accesses are met
 	//System.out.println("ESJQuantifyClauseExpr tc done");
-	return n;
+	return super.typeCheck(tc);
+	//return n;
     } 
+
 
 }
 

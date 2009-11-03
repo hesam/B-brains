@@ -6,6 +6,7 @@ import polyglot.ext.jl.ast.*;
 import polyglot.ext.jl5.ast.*;
 import polyglot.util.*;
 import polyglot.types.*;
+import polyglot.ext.jl5.types.*;
 import polyglot.ext.esj.types.ESJTypeSystem;
 import polyglot.visit.*;
 
@@ -16,22 +17,25 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
     protected static int idCtr = 0;
     protected FormulaBinary.Operator quantKind;
     protected String id,quantVarN;
-    protected List quantVarD;
-    protected LocalInstance quantVarI;
+    protected List quantVarD, quantVarD2;
     protected Expr quantListExpr;
     protected ESJQuantifyClauseExpr quantClauseExpr;
     protected JL5MethodDecl parentMethod;
+    protected boolean isComprehension;
 
-    public ESJQuantifyExpr_c(Position pos, FormulaBinary.Operator quantKind, String quantVarN, List quantVarD, LocalInstance quantVarI, Expr quantListExpr, Expr quantClauseExpr) {
+    public ESJQuantifyExpr_c(Position pos, FormulaBinary.Operator quantKind, String quantVarN, List quantVarD, List quantVarD2, Expr quantListExpr, Expr quantClauseExpr, boolean isComprehension) {
 	super(pos);
-	this.id = (quantKind == FormulaBinary.ALL ? "univQuantify_": "existQuantify_") + Integer.toString(idCtr++);
+	this.id = (isComprehension ? "setComprehension_" : quantKind == FormulaBinary.ALL ? "univQuantify_": "existQuantify_") + Integer.toString(idCtr++);
 	this.quantKind = quantKind;
 	this.quantVarN = quantVarN;
 	this.quantVarD = quantVarD;
-	this.quantVarI = quantVarI;
+	this.quantVarD2 = quantVarD2;
 	this.quantListExpr = quantListExpr;
+	this.isComprehension = isComprehension;
 	this.quantClauseExpr = new ESJQuantifyClauseExpr_c(pos, quantClauseExpr);
     }
+
+    public static int idCtr() { return idCtr; }
 
     public Expr quantListExpr() {
 	return quantListExpr;
@@ -57,16 +61,24 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
 	return quantVarD;
     }
 
-    public LocalInstance quantVarI() {
-	return quantVarI;
+    public List quantVarD2() {
+	return quantVarD2;
     }
 
     public JL5MethodDecl parentMethod() {
 	return parentMethod;
     }
 
+    public boolean isComprehension() {
+	return isComprehension;
+    }
+
     public void parentMethod(JL5MethodDecl m) {
 	this.parentMethod = m;
+    }
+
+    public void quantVarD2(List quantVarD2) {
+	this.quantVarD2 = quantVarD2;
     }
 
     public List acceptCFG(CFGBuilder v, List succs) {
@@ -78,14 +90,14 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
     }
 
     // Reconstruct the pred expr.
-    protected ESJQuantifyExpr_c reconstruct(FormulaBinary.Operator quantKind, String quantVarN, List quantVarD, Expr quantListExpr, ESJQuantifyClauseExpr quantClauseExpr) {
+    protected ESJQuantifyExpr_c reconstruct(FormulaBinary.Operator quantKind, String quantVarN, List quantVarD, List quantVarD2, Expr quantListExpr, ESJQuantifyClauseExpr quantClauseExpr) {
 	
 	if (quantListExpr != this.quantListExpr || quantClauseExpr != this.quantClauseExpr) {
 	    ESJQuantifyExpr_c n = (ESJQuantifyExpr_c) copy();
 	    n.quantKind = quantKind;
 	    n.quantVarN = quantVarN;
 	    n.quantVarD = quantVarD; //TypedList.copyAndCheck(quantVarD, LocalDecl.class, true);
-	    n.quantVarI = quantVarI;
+	    n.quantVarD2 = quantVarD2;
 	    n.quantListExpr = quantListExpr;
 	    n.quantClauseExpr = quantClauseExpr;
 	    return n;
@@ -99,28 +111,25 @@ public class ESJQuantifyExpr_c extends Expr_c implements ESJQuantifyExpr {
 	List quantVarD = (List) visitList(this.quantVarD, v);
 	Expr quantListExpr = (Expr) visitChild(this.quantListExpr, v);
 	ESJQuantifyClauseExpr quantClauseExpr = (ESJQuantifyClauseExpr) visitChild(this.quantClauseExpr, v);
-	return reconstruct(this.quantKind, this.quantVarN, quantVarD, quantListExpr, quantClauseExpr);
+	return reconstruct(this.quantKind, this.quantVarN, quantVarD, this.quantVarD2, quantListExpr, quantClauseExpr);
     }
 
-    
     public Node typeCheck(TypeChecker tc) throws SemanticException {
+	JL5TypeSystem ts = (JL5TypeSystem) tc.typeSystem();
 	ESJQuantifyExpr n = (ESJQuantifyExpr) super.typeCheck(tc);
-	n = (ESJQuantifyExpr)n.type(tc.typeSystem().Boolean()); //FIXME
+	if (isComprehension) {
+	    Type t = ts.typeForName("polyglot.ext.esj.primitives.ESJSet"); 
+	    ParameterizedType pt = ts.parameterizedType((JL5ParsedClassType) t);
+	    ArrayList<Type> at = new ArrayList<Type>();
+	    at.add(((LocalDecl) quantVarD.get(0)).declType());
+	    pt.typeArguments(at);
+	    n = (ESJQuantifyExpr)n.type(pt);
+	} else {
+	    n = (ESJQuantifyExpr)n.type(ts.Boolean());
+	}
 	return n;
     } 
-    /*
-    public Context enterScope(Node child, Context c) {
-	System.out.println(child);
-	System.out.println("qi2: " + quantVarI);
-	if (child instanceof ESJQuantifyClauseExpr) {
-	    c.addVariable(quantVarI);
-	    //child.addDecls(c);
-	    
-	}
 
-	return super.enterScope(child, c);
-	}
-    */
 
 }
 

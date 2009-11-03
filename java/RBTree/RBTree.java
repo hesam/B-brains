@@ -1082,7 +1082,7 @@ public class RBTree<V>
     public static void main(String[] args) {
 
 	TEST_METHOD = 0;
-	MAX_SIZE = 100;
+	MAX_SIZE = 200;
 	Random rand = new Random(1111L);
 
         RBTree<Integer> t = new RBTree<Integer>();

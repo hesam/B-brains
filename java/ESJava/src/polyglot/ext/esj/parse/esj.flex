@@ -245,9 +245,12 @@ SingleCharacter = [^\r\n\'\\]
   "volatile"                     { return key(sym.VOLATILE); }
   "strictfp"                     { return key(sym.STRICTFP); }
   "assert"                       { return key(sym.ASSERT); }
-  "predicate"                    { return key(sym.PREDICATE); }
+  "enum"                         { return key(sym.ESJENUM); }
+  "spec"                         { return key(sym.SPEC); }
+  "alloy"                        { return key(sym.ALLOY); }
   "ensures"                      { return key(sym.ENSURES); }
-  "ensured"                      { return key(sym.ENSURED); }
+  "modifies fields"              { return key(sym.MODIFIESFIELDS); }
+  "modifies objects"             { return key(sym.MODIFIESOBJECTS); }
   "all"                          { return key(sym.ALL); }
   "some"                         { return key(sym.SOME); }
   "no"                           { return key(sym.NO); }
