@@ -1,0 +1,173 @@
+
+import static kodkod.ast.Expression.UNIV;
+
+import kodkod.ast.*;
+import kodkod.ast.operator.*;
+import kodkod.instance.*;
+import kodkod.engine.*;
+import kodkod.engine.satlab.SATFactory;
+import kodkod.engine.config.Options;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Iterator;
+import java.util.Random;
+
+public class Sort1{
+    static int MAX_SIZE;
+    public int length;
+    public int[] inp, out;
+    //Constructor
+    public Sort1(int l) {
+	length = l;
+	out = new int[l];
+    }
+
+    void solve() {
+
+	Bounds b;
+	Formula f;
+
+	Relation Idxs = Relation.unary("Idxs");
+	Relation x2 = Relation.unary("Int/max");
+	Relation r0 = Relation.nary("r0", 2);
+	Relation r1 = Relation.nary("r1", 2);
+
+	String[] atoms = new String[MAX_SIZE+1];
+
+	for(int i=0;i<=MAX_SIZE;i++)
+	    atoms[i] = Integer.toString(i);
+
+	List<String> atomlist = Arrays.asList(atoms);
+	Universe universe = new Universe(atomlist);
+	TupleFactory factory = universe.factory();
+	Bounds bounds = new Bounds(universe);
+
+	//TupleSet Idxs_upper = factory.noneOf(1);
+
+	for(int i=0;i<MAX_SIZE;i++) {
+	    Object ti = Integer.toString(i); 
+	    //Idxs_upper.add(factory.tuple(atoms[i]));
+	    bounds.boundExactly(i,factory.range(factory.tuple(ti),factory.tuple(ti)));
+	}
+
+	TupleSet x2_upper = factory.noneOf(1);
+
+	x2_upper.add(factory.tuple(atoms[MAX_SIZE-1]));
+	//bounds.boundExactly(Idxs, Idxs_upper);
+	bounds.boundExactly(x2, x2_upper);
+
+	TupleSet r0_upper = factory.noneOf(2);
+	for (int i=0;i<inp.length;i++) {
+	    Object ti = universe.atom(i);
+	    bounds.boundExactly(i,factory.range(factory.tuple(ti),factory.tuple(ti)));
+	    r0_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(inp[i]))));
+	}
+	bounds.boundExactly(r0, r0_upper);
+	
+	TupleSet r1_upper = factory.noneOf(2);
+
+	for (int i=0;i<inp.length;i++) {
+	    Object ti = universe.atom(i);
+	    for (int j=0;j<inp.length;j++) {
+		r1_upper.add(factory.tuple(ti).product(factory.tuple(universe.atom(j))));
+	    }
+	}
+	bounds.bound(r1, r1_upper);
+
+	b = bounds;
+
+	Variable va=Variable.unary("");
+	Decls x32=va.oneOf(Expression.INTS);
+	Expression x35=r0.join(va);
+	Expression x36=r1.join(va);
+	IntExpression x45=x35.count();
+	IntExpression x46=x36.count();
+	Formula x50=x45.eq(x46);
+	Formula xPermutaion=x50.forAll(x32);
+	
+	Variable vb=Variable.unary("");
+	Expression x13=Expression.INTS.difference(x2);
+	Decls x33=vb.oneOf(x13);
+	Expression x69=vb.join(r1);
+	IntExpression x68=x69.sum();
+	IntExpression x75=vb.sum();
+	IntExpression x76=IntConstant.constant(1);
+	IntExpression x74=x75.plus(x76);
+	Expression x73=x74.toExpression();
+	Expression x72=x73.join(r1);
+	IntExpression x71=x72.sum();
+	Formula x60=x68.lte(x71);
+	Formula xSorted=x60.forAll(x33);
+	
+	Formula x100=Formula.compose(FormulaOperator.AND, r1.function(Expression.INTS,Expression.INTS), xPermutaion,xSorted);
+
+	f = x100;
+
+	Solver solver = new Solver();
+	solver.options().setSolver(SATFactory.MiniSat);
+	solver.options().setBitwidth(((int) Math.ceil(Math.log(MAX_SIZE) / Math.log(2))) + 2);
+	solver.options().setFlatten(false);
+	solver.options().setIntEncoding(Options.IntEncoding.TWOSCOMPLEMENT);
+	solver.options().setSymmetryBreaking(20);
+	solver.options().setSkolemDepth(0);
+	System.out.println("Solving...");
+	System.out.flush();
+	Solution sol = solver.solve(f,b);
+	//System.out.println(sol.toString());
+	
+	if (sol.instance()==null) {
+	    System.out.println(sol);
+	} else {
+	    System.out.println(sol.stats());
+
+	    final Iterator<Tuple> iter = sol.instance().tuples(r1).iterator();
+	    for(int i = 0; i < length; i++) {
+		out[i] = Integer.parseInt((String)iter.next().atom(1));
+		//System.out.print("\t");
+	    }
+	    
+	}
+
+
+    }
+
+    public void println(int [] l){
+	System.out.print("[");
+	for(int i=0;i<l.length-1;i++) {
+	    System.out.print(l[i]);
+	    System.out.print(", ");
+	}
+	if(l.length > 0) {
+	    System.out.print(l[l.length-1]);
+	}
+	System.out.println("]");
+    }
+    
+    public static void main(String args[]){
+
+	Random rand = new Random(1111L);
+	MAX_SIZE = 50;
+
+	// create an array of the given size
+	int[] a = new int[MAX_SIZE];
+	int[] b = new int[MAX_SIZE];
+	int j = 0;
+	for (int i = 0 ; i < MAX_SIZE; ++i)
+	    a[i] = i;
+	for (int i = MAX_SIZE; i>0; --i) {
+	    int n = rand.nextInt(i);
+	    int temp = a[n];
+	    a[n] = a[i-1];
+	    b[j++] = temp;
+	}
+
+        Sort1 l = new Sort1(MAX_SIZE);
+	l.inp = b;
+        l.println(l.inp);
+	l.solve();
+        l.println(l.out);
+
+    }
+}
+
